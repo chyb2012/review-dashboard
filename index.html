@@ -4,9 +4,9 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>发行上市审核动态 · 沪深北与股转</title>
-<link rel="stylesheet" href="./styles.css?v=20261105064636">
+<link rel="stylesheet" href="./styles.css?v=20261105073033">
 <script src="./vendor/echarts.min.js"></script>
-<script src="./statengine.js?v=20261105064636"></script>
+<script src="./statengine.js?v=20261105073033"></script>
 </head>
 <body data-static="1">
 <header class="masthead">
@@ -80,15 +80,19 @@
 
     <section class="paper col-4 side-panel">
       <div class="mini">
-        <div class="paper-head tight"><div><span class="eyebrow">STATUS MIX</span><h2>审核状态分布</h2></div></div>
-        <div id="statusChart" class="chart-sm"></div>
+        <div class="paper-head tight">
+          <div><span class="eyebrow">STATUS MIX</span><h2>审核状态分布</h2></div>
+          <span class="hint">按市场</span>
+        </div>
+        <div id="statusChart" class="mix-rows"></div>
+        <div id="statusLegend" class="legend-dots"></div>
       </div>
       <div class="mini">
-        <div class="paper-head tight"><div><span class="eyebrow">BOARD MIX</span><h2>板块构成</h2></div></div>
-        <div class="mix-title">期间过会</div>
-        <div id="passMixChart" class="chart-xs"></div>
-        <div class="mix-title">期末在审</div>
-        <div id="reviewMixChart" class="chart-xs"></div>
+        <div class="paper-head tight">
+          <div><span class="eyebrow">BOARD MIX</span><h2>板块构成</h2></div>
+          <span class="hint">点击查看项目</span>
+        </div>
+        <div id="boardMix" class="mix-list"></div>
       </div>
     </section>
 
@@ -189,6 +193,7 @@
 </div>
 
 <div class="toast" id="toast"></div>
-<script src="./app.js?v=20261105064636"></script>
+<div class="mix-tip" id="mixTip"></div>
+<script src="./app.js?v=20261105073033"></script>
 </body>
 </html>

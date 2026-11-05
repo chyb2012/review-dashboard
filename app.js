@@ -205,7 +205,7 @@
       renderKpi(stats);
       renderMain(stats);
       renderStatusChart(stats);
-      renderDonut(stats);
+      renderBoardMix(stats);
       renderHeatmap(stats);
       renderSponsorBoard();
       state.total = passedTotal.total;
@@ -283,69 +283,80 @@
 
   function renderStatusChart(s) {
     const rows = s.statusBoard || [];
-    if (!rows.length) { charts.status.clear(); return; }
-    const stages = ['已受理', '已问询', '已回复', '上市委会议', '补充审核', '中止及财报更新',
+    const box = $('#statusChart');
+    const legend = $('#statusLegend');
+    if (!rows.length) {
+      box.innerHTML = '<div class="mix-empty">当前筛选条件下暂无项目</div>';
+      legend.innerHTML = '';
+      return;
+    }
+    const all = ['已受理', '已问询', '已回复', '上市委会议', '补充审核', '中止及财报更新',
       '提交注册', '注册结果', '已发行', '终止', '其他'];
-    charts.status.setOption({
-      animationDuration: 450,
-      grid: { left: 46, right: 10, top: 4, bottom: 2 },
-      tooltip: {
-        trigger: 'axis', axisPointer: { type: 'shadow' }, confine: true, textStyle: { fontSize: 11 },
-        formatter: (ps) => {
-          const r = rows[ps[0].dataIndex] || {};
-          const sum = ps.reduce((a, x) => a + (x.value || 0), 0);
-          const parts = ps.filter((x) => x.value > 0)
-            .map((x) => `${x.marker}${x.seriesName} <b>${num(x.value)}</b>`);
-          return `<b>${label('market', r.market)}</b> · ${num(sum)} 项<br>${parts.join('<br>')}`;
-        },
-      },
-      xAxis: { type: 'value', show: false },
-      yAxis: {
-        type: 'category', inverse: true, data: rows.map((r) => label('market', r.market)),
-        axisLine: { show: false }, axisTick: { show: false },
-        axisLabel: { color: '#6B7280', fontSize: 11 },
-      },
-      series: stages.map((st) => ({
-        name: st, type: 'bar', stack: 'stage', barMaxWidth: 15,
-        itemStyle: { color: STAGE_COLORS[st] || '#CBD5E1' },
-        emphasis: { focus: 'series' },
-        data: rows.map((r) => (r.stages || {})[st] || 0),
-      })),
-    }, true);
+    const stages = all.filter((st) => rows.some((r) => (r.stages || {})[st]));
+    box.innerHTML = rows.map((r) => {
+      const st = r.stages || {};
+      const total = stages.reduce((a, k) => a + (st[k] || 0), 0);
+      const segs = stages.map((k) => {
+        const v = st[k] || 0;
+        if (!v) return '';
+        return `<span class="mix-seg" style="width:${(v / total * 100).toFixed(3)}%;background:${STAGE_COLORS[k] || '#CBD5E1'}"`
+          + ` data-label="${esc(`${label('market', r.market)} · ${k}`)}" data-value="${v}"></span>`;
+      }).join('');
+      return `<div class="mix-row"><span class="mix-name">${esc(label('market', r.market))}</span>`
+        + `<div class="mix-track">${segs}</div><span class="mix-total">${num(total)}</span></div>`;
+    }).join('');
+    legend.innerHTML = stages.map((k) => `<span class="ld"><i style="background:${STAGE_COLORS[k] || '#CBD5E1'}"></i>${esc(k)}</span>`).join('');
   }
 
-  function renderDonut(s) {
-    const total = (mix) => (mix || []).reduce((a, b) => a + b.value, 0);
-    const option = (mix) => {
-      const data = (mix || []).map((x) => ({
-        name: x.key, value: x.value, itemStyle: { color: BOARD_COLORS[x.key] || '#94A3B8' },
-      }));
-      return {
-        tooltip: { trigger: 'item', textStyle: { fontSize: 12 }, formatter: '{b}<br>{c} 项 · {d}%' },
-        title: {
-          text: num(total(mix)), left: '33%', top: '40%', textAlign: 'center',
-          textStyle: { fontSize: 19, color: '#111827', fontWeight: 700 },
-        },
-        series: [{
-          type: 'pie', radius: ['30%', '50%'], center: ['33%', '50%'], avoidLabelOverlap: true,
-          itemStyle: { borderColor: '#fff', borderWidth: 1.5 },
-          label: {
-            show: true, position: 'outside', formatter: '{b}', fontSize: 9,
-            color: '#4B5563', alignTo: 'labelLine',
-          },
-          labelLine: {
-            show: true, length: 5, length2: 7, smooth: false,
-            lineStyle: { width: 1, color: '#CBD5E1' },
-          },
-          labelLayout: { hideOverlap: true },
-          emphasis: { scaleSize: 4, label: { fontSize: 10, fontWeight: 600, color: '#111827' } },
-          cursor: 'pointer',
-          data,
-        }],
-      };
+  function renderBoardMix(s) {
+    const block = (title, mix, basis) => {
+      const items = (mix || []).filter((x) => x.value > 0);
+      const total = items.reduce((a, b) => a + b.value, 0);
+      if (!total) {
+        return `<div class="mix-block"><div class="mix-head"><span>${title}</span><b>0<em>项</em></b></div>`
+          + '<div class="mix-empty">该区间暂无相关项目</div></div>';
+      }
+      const color = (k) => BOARD_COLORS[k] || '#94A3B8';
+      const segs = items.map((x) => {
+        const pct = x.value / total * 100;
+        return `<span class="mix-seg" style="width:${pct.toFixed(3)}%;background:${color(x.key)}"`
+          + ` data-basis="${basis}" data-board="${esc(x.key)}" data-label="${esc(x.key)}"`
+          + ` data-value="${x.value}" data-pct="${pct.toFixed(1)}"></span>`;
+      }).join('');
+      const chips = items.map((x) => {
+        const pct = x.value / total * 100;
+        return `<span class="mix-chip" data-basis="${basis}" data-board="${esc(x.key)}">`
+          + `<i style="background:${color(x.key)}"></i>${esc(x.key)}<b>${num(x.value)}</b><em>${pct.toFixed(0)}%</em></span>`;
+      }).join('');
+      return `<div class="mix-block">
+        <div class="mix-head"><span>${title}</span><b>${num(total)}<em>项</em></b></div>
+        <div class="mix-bar">${segs}</div>
+        <div class="mix-chips">${chips}</div>
+      </div>`;
     };
-    charts.passMix.setOption(option(s.passBoardMix), true);
-    charts.reviewMix.setOption(option(s.reviewBoardMix), true);
+    $('#boardMix').innerHTML = block('期间过会', s.passBoardMix, 'pass')
+      + block('期末在审', s.reviewBoardMix, 'review');
+  }
+
+  function showMixTip(seg) {
+    const t = $('#mixTip');
+    if (!t) return;
+    const pct = seg.dataset.pct ? ` · ${seg.dataset.pct}%` : '';
+    t.innerHTML = `<b>${esc(seg.dataset.label)}</b> ${num(seg.dataset.value)} 项${pct}`;
+    t.classList.add('on');
+  }
+
+  function moveMixTip(e) {
+    const t = $('#mixTip');
+    if (!t || !t.classList.contains('on')) return;
+    const w = t.offsetWidth;
+    t.style.left = `${Math.max(8, Math.min(e.clientX + 14, window.innerWidth - w - 8))}px`;
+    t.style.top = `${Math.max(8, e.clientY - 36)}px`;
+  }
+
+  function hideMixTip() {
+    const t = $('#mixTip');
+    if (t) t.classList.remove('on');
   }
 
   function drawHeatChart(el, months, boards, matrix, max, color) {
@@ -762,6 +773,20 @@
       openProjectsModal({ title: `${s} · 过会项目`, basis: 'passed', sponsor: s })
         .catch((x) => toast(x.message));
     });
+    ['#statusChart', '#boardMix'].forEach((sel) => {
+      const box = $(sel);
+      if (!box) return;
+      box.addEventListener('mouseover', (e) => {
+        const seg = e.target.closest('.mix-seg');
+        if (seg) showMixTip(seg);
+      });
+      box.addEventListener('mousemove', moveMixTip);
+      box.addEventListener('mouseleave', hideMixTip);
+    });
+    $('#boardMix').addEventListener('click', (e) => {
+      const node = e.target.closest('[data-board]');
+      if (node) openBoardModal(node.dataset.basis, node.dataset.board);
+    });
     $('#projectTable').addEventListener('click', (e) => {
       const tr = e.target.closest('tr[data-id]'); if (tr) openDetail(tr.dataset.id).catch((x) => toast(x.message));
     });
@@ -838,11 +863,6 @@
       if (p && p.componentType === 'series') toggleMainLabels(p.seriesIndex);
     });
     charts.main.on('globalout', () => toggleMainLabels(-1));
-    charts.status = echarts.init($('#statusChart'));
-    charts.passMix = echarts.init($('#passMixChart'));
-    charts.reviewMix = echarts.init($('#reviewMixChart'));
-    charts.passMix.on('click', (p) => openBoardModal('pass', p.name));
-    charts.reviewMix.on('click', (p) => openBoardModal('review', p.name));
     charts.heatPass = echarts.init($('#heatPassChart'));
     charts.heatReg = echarts.init($('#heatRegChart'));
     charts.main.on('click', (p) => {

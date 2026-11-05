@@ -291,16 +291,18 @@
       return;
     }
     const all = ['已受理', '已问询', '已回复', '上市委会议', '补充审核', '中止及财报更新',
-      '提交注册', '注册结果', '已发行', '终止', '其他'];
+      '提交注册', '已发行', '其他'];
     const stages = all.filter((st) => rows.some((r) => (r.stages || {})[st]));
     box.innerHTML = rows.map((r) => {
       const st = r.stages || {};
       const total = stages.reduce((a, k) => a + (st[k] || 0), 0);
+      if (!total) return '';
       const segs = stages.map((k) => {
         const v = st[k] || 0;
         if (!v) return '';
-        return `<span class="mix-seg" style="width:${(v / total * 100).toFixed(3)}%;background:${STAGE_COLORS[k] || '#CBD5E1'}"`
-          + ` data-market="${r.market}" data-stage="${esc(k)}"`
+        const pct = v / total * 100;
+        return `<span class="mix-seg" style="width:${pct.toFixed(3)}%;background:${STAGE_COLORS[k] || '#CBD5E1'}"`
+          + ` data-market="${r.market}" data-stage="${esc(k)}" data-pct="${pct.toFixed(1)}"`
           + ` data-label="${esc(`${label('market', r.market)} · ${k}`)}" data-value="${v}"></span>`;
       }).join('');
       return `<div class="mix-row"><span class="mix-name">${esc(label('market', r.market))}</span>`

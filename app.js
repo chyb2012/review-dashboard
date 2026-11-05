@@ -25,7 +25,6 @@
     pendingReg: { name: '期末待注册', color: '#D97706' },
     terminated: { name: '终止审核', color: '#EF4444' },
   };
-  let STAGES = [];
   let lastStats = null;
   const state = { gran: 'month', range: '1y', markets: [], types: [], sponsor: '', flow: 'all' };
   const tbl = { frm: '', to: '', q: '', market: '', board: '', type: '', stage: '', sponsor: '', page: 1, pageSize: 20, total: 0 };
@@ -154,16 +153,9 @@
     m.markets.forEach((x) => LAB.market[x.key] = x.label);
     m.types.forEach((x) => LAB.type[x.key] = x.label);
     m.statuses.forEach((x) => LAB.status[x.key] = x.label);
-    m.stages.forEach((x) => LAB.stage[x.key] = x.label);
-    STAGES = m.stages.map((x) => x.key);
-    const flowSel = $('#flowSel');
-    const oldGroup = flowSel.querySelector('optgroup[data-stages]');
-    if (oldGroup) oldGroup.remove();
-    const group = document.createElement('optgroup');
-    group.label = '按审核阶段（期末存量）';
-    group.dataset.stages = '1';
-    STAGES.filter((st) => st !== '其他').forEach((st) => group.appendChild(new Option(`期末·${st}`, `stage:${st}`)));
-    flowSel.appendChild(group);
+    const stageCounts = m.stageCounts || {};
+    const stages = m.stages.filter((x) => (stageCounts[x.key] || 0) > 0);
+    stages.forEach((x) => LAB.stage[x.key] = x.label);
 
     $('#marketChips').innerHTML = `<button class="chip all on" data-market="">全部</button>` +
       m.markets.map((x) => `<button class="chip" data-market="${x.key}">${esc(x.label)}</button>`).join('');
@@ -174,7 +166,7 @@
     $('#tblType').innerHTML = `<option value="">全部类型</option>` +
       m.types.map((x) => `<option value="${esc(x.key)}">${esc(x.label)}</option>`).join('');
     $('#tblStage').innerHTML = `<option value="">全部阶段</option>` +
-      m.stages.map((x) => `<option value="${esc(x.key)}">${esc(x.label)}</option>`).join('');
+      stages.map((x) => `<option value="${esc(x.key)}">${esc(x.label)}</option>`).join('');
     $('#tblBoard').innerHTML = `<option value="">全部板块</option>` +
       ['主板', '科创板', '创业板', '北交所', '新三板']
         .map((b) => `<option value="${b}">${b}</option>`).join('');

@@ -1,0 +1,194 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>发行上市审核动态 · 沪深北与股转</title>
+<link rel="stylesheet" href="./styles.css?v=20261105133319">
+<script src="./vendor/echarts.min.js"></script>
+<script src="./statengine.js?v=20261105133319"></script>
+</head>
+<body data-static="1">
+<header class="masthead">
+  <div class="mast-left">
+    <div class="eyebrow">SSE · SZSE · BSE · NEEQ / REVIEW MONITOR</div>
+    <h1>发行上市审核动态</h1>
+    <div class="sub">IPO · 再融资 · 并购重组 · 新三板推荐挂牌</div>
+  </div>
+  <div class="mast-right">
+    <div class="date" id="today"></div>
+    <div class="sync-chips" id="syncChips"></div>
+    <a href="./sync.html" style="text-decoration:none;color:#334155;border:1px solid #cbd5e1;background:#fff;border-radius:8px;padding:7px 11px;font-size:13px;white-space:nowrap">数据更新日志</a>
+    <button class="ghost" id="refreshBtn">刷新数据</button>
+  </div>
+</header>
+
+<section class="filters" id="filters">
+  <div class="fblock">
+    <span class="fl">粒度</span>
+    <div class="seg" id="granSeg">
+      <button data-v="day">日</button><button data-v="week">周</button>
+      <button data-v="month" class="on">月</button><button data-v="year">年</button>
+    </div>
+  </div>
+  <div class="fblock">
+    <span class="fl">区间</span>
+    <div class="seg" id="rangeSeg">
+      <button data-v="1m">近1月</button><button data-v="3m">近3月</button>
+      <button data-v="1y" class="on">近1年</button><button data-v="all">全部</button><button data-v="custom">自定义</button>
+    </div>
+    <div class="dates hidden" id="customDates">
+      <input type="date" id="fromDate"><span>—</span><input type="date" id="toDate">
+    </div>
+  </div>
+  <div class="fblock">
+    <span class="fl">市场</span>
+    <div class="chips" id="marketChips"></div>
+  </div>
+  <div class="fblock">
+    <span class="fl">类型</span>
+    <div class="chips" id="typeChips"></div>
+  </div>
+  <div class="fblock grow">
+    <span class="fl">保荐 / 主办机构</span>
+    <input id="sponsorInput" list="sponsorList" placeholder="搜索机构，如：中信证券">
+    <datalist id="sponsorList"></datalist>
+  </div>
+</section>
+
+<main>
+  <section class="kpis" id="kpis"></section>
+
+  <div class="grid">
+    <section class="paper col-8 main-panel">
+      <div class="paper-head">
+        <div><span class="eyebrow">REVIEW PIPELINE</span><h2>审核状态走势</h2></div>
+        <select id="flowSel" class="mini-sel">
+          <option value="all">全部状态（堆叠）</option>
+          <option value="accepted">新增受理</option>
+          <option value="passed">上市委会议通过</option>
+          <option value="submit">提交注册</option>
+          <option value="registered">取得批文</option>
+          <option value="reviewing">期末在审</option>
+          <option value="pendingReg">期末待注册</option>
+          <option value="terminated">终止审核</option>
+        </select>
+      </div>
+      <div id="mainChart" class="chart-lg"></div>
+      <div class="legend-note" id="legendNote">受理 · 过会 · 提交注册 · 取得批文</div>
+    </section>
+
+    <section class="paper col-4 side-panel">
+      <div class="mini">
+        <div class="paper-head tight"><div><span class="eyebrow">STATUS MIX</span><h2>审核状态分布</h2></div></div>
+        <div id="statusChart" class="chart-sm"></div>
+      </div>
+      <div class="mini">
+        <div class="paper-head tight"><div><span class="eyebrow">BOARD MIX</span><h2>板块构成</h2></div></div>
+        <div class="mix-title">期间过会</div>
+        <div id="passMixChart" class="chart-xs"></div>
+        <div class="mix-title">期末在审</div>
+        <div id="reviewMixChart" class="chart-xs"></div>
+      </div>
+    </section>
+
+    <section class="paper col-7">
+      <div class="paper-head">
+        <div><span class="eyebrow">PASSED SPONSORS</span><h2>保荐机构过会项目排行榜</h2></div>
+        <span class="hint">选定期间 · 按过会数量</span>
+      </div>
+      <div id="sponsorBoard" class="sponsor-board"></div>
+    </section>
+
+    <section class="paper col-5">
+      <div class="paper-head">
+        <div><span class="eyebrow">BOARD × MONTH</span><h2>板块月度热力</h2></div>
+        <span class="hint">近 12 个月</span>
+      </div>
+      <div class="heat-block">
+        <div class="heat-cap">上市委会议通过</div>
+        <div id="heatPassChart" class="chart-heat"></div>
+      </div>
+      <div class="heat-block">
+        <div class="heat-cap">取得批文（注册）</div>
+        <div id="heatRegChart" class="chart-heat"></div>
+      </div>
+    </section>
+
+    <section class="paper col-12">
+      <div class="paper-head">
+        <div class="table-title">
+          <div><span class="eyebrow">PROJECTS</span><h2>项目明细</h2></div>
+          <span class="hint" id="tableMeta"></span>
+        </div>
+        <div class="table-actions">
+          <select id="pageSizeSel" class="mini-sel">
+            <option value="20">20 条/页</option><option value="50">50 条/页</option><option value="100">100 条/页</option>
+          </select>
+          <button class="ghost" id="exportBtn">导出 CSV</button>
+        </div>
+      </div>
+      <div class="table-filters" id="tableFilters">
+        <input id="tblQ" class="tf-input" placeholder="发行人 / 简称 / 代码">
+        <select id="tblMarket" class="tf-sel"></select>
+        <select id="tblBoard" class="tf-sel"></select>
+        <select id="tblType" class="tf-sel"></select>
+        <select id="tblStage" class="tf-sel"></select>
+        <input id="tblSponsor" class="tf-input" list="sponsorList" placeholder="保荐 / 主办机构">
+        <input type="date" id="tblFrom" class="tf-date">
+        <span class="tf-sep">—</span>
+        <input type="date" id="tblTo" class="tf-date">
+        <button class="ghost" id="tblReset">重置</button>
+      </div>
+      <div class="table-wrap">
+        <table id="projectTable">
+          <thead><tr>
+            <th>发行人</th><th>市场 / 板块</th><th>类型</th><th>审核阶段</th>
+            <th>保荐机构</th><th>受理</th><th>问询</th><th>回复</th>
+            <th>上市委会议</th><th>提交注册</th><th>注册</th><th>更新</th>
+          </tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <div class="table-foot">
+        <span id="pageInfo"></span>
+        <div class="pager">
+          <button class="ghost" id="prevPage">上一页</button>
+          <button class="ghost" id="nextPage">下一页</button>
+          <input type="number" id="jumpPage" class="tf-page" min="1" placeholder="页码">
+          <button class="ghost" id="jumpBtn">跳转</button>
+        </div>
+      </div>
+    </section>
+  </div>
+</main>
+
+<aside class="drawer" id="drawer">
+  <button class="close" id="drawerClose">×</button>
+  <div id="drawerBody"></div>
+</aside>
+<div class="overlay" id="overlay"></div>
+
+<div class="modal profile-modal" id="profileModal">
+  <div class="modal-head">
+    <div><span class="eyebrow">COMPANY PROFILE</span><h2 id="profileTitle">企业资料</h2><div class="hint" id="profileSource"></div></div>
+    <button class="close" id="profileClose">×</button>
+  </div>
+  <div class="profile-body">
+    <nav class="profile-tabs" id="profileTabs"></nav>
+    <div class="profile-content" id="profileContent"></div>
+  </div>
+</div>
+
+<div class="modal board-modal" id="boardModal">
+  <div class="modal-head">
+    <div><span class="eyebrow">PROJECT LIST</span><h2 id="boardTitle">项目明细</h2><div class="hint" id="boardSub"></div></div>
+    <button class="close" id="boardClose">×</button>
+  </div>
+  <div class="modal-body" id="boardBody"></div>
+</div>
+
+<div class="toast" id="toast"></div>
+<script src="./app.js?v=20261105133319"></script>
+</body>
+</html>

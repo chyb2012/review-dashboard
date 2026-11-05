@@ -300,6 +300,7 @@
         const v = st[k] || 0;
         if (!v) return '';
         return `<span class="mix-seg" style="width:${(v / total * 100).toFixed(3)}%;background:${STAGE_COLORS[k] || '#CBD5E1'}"`
+          + ` data-market="${r.market}" data-stage="${esc(k)}"`
           + ` data-label="${esc(`${label('market', r.market)} · ${k}`)}" data-value="${v}"></span>`;
       }).join('');
       return `<div class="mix-row"><span class="mix-name">${esc(label('market', r.market))}</span>`
@@ -525,6 +526,7 @@
     const to = opts.to != null ? opts.to : f.to;
     const params = { ...f, basis: opts.basis, board: opts.board || '', stage: opts.stage || '', frm, to };
     if (opts.sponsor) params.sponsor = opts.sponsor;
+    if (opts.markets != null) params.markets = opts.markets;
     $('#boardTitle').textContent = opts.title;
     $('#boardSub').textContent = '加载中…';
     $('#boardBody').innerHTML = '';
@@ -782,6 +784,14 @@
       });
       box.addEventListener('mousemove', moveMixTip);
       box.addEventListener('mouseleave', hideMixTip);
+    });
+    $('#statusChart').addEventListener('click', (e) => {
+      const seg = e.target.closest('.mix-seg[data-stage]');
+      if (!seg) return;
+      openProjectsModal({
+        title: `${label('market', seg.dataset.market)} · ${seg.dataset.stage}`,
+        basis: 'stage', stage: seg.dataset.stage, markets: seg.dataset.market,
+      });
     });
     $('#boardMix').addEventListener('click', (e) => {
       const node = e.target.closest('[data-board]');

@@ -330,7 +330,10 @@
         if (p.basis === 'pendingReg') {
           return !!(pa && pa < tEnd && !(rg && rg < tEnd) && !(te && te < tEnd));
         }
-        if (p.basis === 'stage') return stageAt(x.stage || '其他', a, pa, rg, te, tEnd) === p.stage;
+        if (p.basis === 'stage') {
+          return !String(x.id || '').startsWith('IFIND:')
+            && stageAt(x.stage || '其他', a, pa, rg, te, tEnd) === p.stage;
+        }
         return false;
       });
       sortKey = 'update_date';

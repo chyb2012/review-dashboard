@@ -1,7 +1,8 @@
 /* 静态模式下的统计引擎：与 app/stats.py 保持一致的计算口径 */
 (() => {
   const STAGE_ORDER = ['已受理', '已问询', '已回复', '上市委会议', '补充审核',
-    '中止及财报更新', '提交注册', '注册结果', '审核结果', '已发行', '终止', '其他'];
+    '中止及财报更新', '提交注册', '注册结果', '审核结果', '已启动发行', '已上市', '终止', '其他'];
+  const ISSUED_STAGES = ['注册结果', '已发行', '已上市', '已启动发行', '审核结果'];
   const IN_REVIEW_STAGES = new Set(['已受理', '已问询', '已回复', '补充审核', '中止及财报更新']);
   const isCurrent = (end) => {
     const t = new Date(); t.setHours(0, 0, 0, 0);
@@ -150,11 +151,17 @@
     return out;
   }
 
-  function stageAt(stage, a, pa, rg, te, t) {
+  function stageAt(stage, a, pa, rg, te, t, issue, listing) {
     if (te && te < t) return '终止';
-    if (rg && rg < t) return '注册结果';
+    if (listing && listing < t) return '已上市';
+    if (issue && issue < t) return '已启动发行';
+    if (rg && rg < t) {
+      if (stage === '已发行' || stage === '已上市') return '已上市';
+      if (stage === '已启动发行') return '已启动发行';
+      return '注册结果';
+    }
     if (pa && pa < t) {
-      if (stage === '注册结果' || stage === '已发行' || stage === '审核结果') return stage;
+      if (ISSUED_STAGES.includes(stage)) return stage === '已发行' ? '已上市' : stage;
       return '提交注册';
     }
     if (a && a < t) return ACTIVE_STAGES.has(stage) ? stage : (stage || '其他');
@@ -172,6 +179,7 @@
       p: x, a: toDate(x.accept_date), inq: toDate(x.inquiry_date), rep: toDate(x.reply_date),
       pa: toDate(x.pass_date), su: toDate(x.submit_date), rg: toDate(x.register_date),
       te: toDate(x.terminate_date), st: x.stage || '其他',
+      isd: toDate(x.issue_date), lsd: toDate(x.list_date),
       legacy: String(x.id || '').startsWith('IFIND:'),
     }));
     const tEnd = addDays(end, 1);
@@ -190,7 +198,7 @@
         if (x.te && x.te >= bStart && x.te < bEnd) terminated += 1;
         if (base && !x.legacy && base < bEnd && !(x.pa && x.pa < bEnd) && !(x.rg && x.rg < bEnd) && !(x.te && x.te < bEnd)) reviewing += 1;
         if (x.pa && !x.legacy && x.pa < bEnd && !(x.rg && x.rg < bEnd) && !(x.te && x.te < bEnd)) pending += 1;
-        const at = x.legacy ? null : stageAt(x.st, x.a, x.pa, x.rg, x.te, bEnd);
+        const at = x.legacy ? null : stageAt(x.st, x.a, x.pa, x.rg, x.te, bEnd, x.isd, x.lsd);
         if (at) stages[at] = (stages[at] || 0) + 1;
       });
       return {
@@ -234,7 +242,7 @@
     const boardStats = {};
     parsed.forEach((x) => {
       if (x.legacy) return;
-      const at = stageAt(x.st, x.a, x.pa, x.rg, x.te, tEnd);
+      const at = stageAt(x.st, x.a, x.pa, x.rg, x.te, tEnd, x.isd, x.lsd);
       if (!at) return;
       const m = x.p.market;
       boardStats[m] = boardStats[m] || {};
@@ -332,7 +340,8 @@
         }
         if (p.basis === 'stage') {
           return !String(x.id || '').startsWith('IFIND:')
-            && stageAt(x.stage || '其他', a, pa, rg, te, tEnd) === p.stage;
+            && stageAt(x.stage || '其他', a, pa, rg, te, tEnd,
+              toDate(x.issue_date), toDate(x.list_date)) === p.stage;
         }
         return false;
       });

@@ -46,8 +46,8 @@
 (() => {
   const $ = (s) => document.querySelector(s);
   const esc = (v) => String(v == null ? '' : v).replace(/[&<>"']/g, (c) => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
-  const NAME = { sse:'上交所', szse:'深交所', bse:'北交所', neeq:'股转系统' };
-  const ORDER = ['sse','szse','bse','neeq'];
+  const NAME = { sse:'上交所', szse:'深交所', bse:'北交所', neeq:'股转系统', ipo_issue:'发行上市' };
+  const ORDER = ['sse','szse','bse','neeq','ipo_issue'];
 
   async function load() {
     let data = null;

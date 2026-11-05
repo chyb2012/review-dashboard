@@ -9,6 +9,7 @@
     '已受理': '#93C5FD', '已问询': '#60A5FA', '已回复': '#3B82F6', '上市委会议': '#A78BFA',
     '补充审核': '#C4B5FD', '中止及财报更新': '#FBBF24', '提交注册': '#F97316',
     '注册结果': '#34D399', '审核结果': '#10B981', '已发行': '#14B8A6',
+    '已启动发行': '#F59E0B', '已上市': '#0D9488',
     '终止': '#F87171', '其他': '#CBD5E1',
   };
   const BOARD_COLORS = {
@@ -180,7 +181,7 @@
     $('#sponsorList').innerHTML = (m.sponsors || []).slice(0, 400).map((s) => `<option value="${esc(s)}">`).join('');
 
     $('#syncChips').innerHTML = (m.sync || []).map((s) => {
-      const name = { sse: '上交所', szse: '深交所', bse: '北交所', neeq: '股转' }[s.source] || s.source;
+      const name = { sse: '上交所', szse: '深交所', bse: '北交所', neeq: '股转', ipo_issue: '发行上市' }[s.source] || s.source;
       return `<span class="s${s.ok ? '' : ' bad'}">${name} ${s.records ? `<b>${num(s.records)}</b> 条更新` : '无变化'} · ${esc((s.finished_at || '').slice(5, 16))}</span>`;
     }).join('') + `<span class="s">入库 <b>${num(m.total)}</b> 项</span>`;
 
@@ -479,6 +480,8 @@
       ['提交注册', p.submit_date || '—'],
       ['过会日期', p.pass_date ? p.pass_date + (p.pass_date_estimated ? '（推算）' : '') : '—'],
       ['注册日期', p.register_date || '—'],
+      ...(p.issue_date ? [['发行日期', p.issue_date], ['发行价', p.issue_price != null ? `${p.issue_price} 元` : '—']] : []),
+      ...(p.list_date ? [['上市日期', p.list_date]] : []),
       ['终止日期', p.terminate_date || '—'],
       ...exItems,
     ];
@@ -685,12 +688,14 @@
   function exportCsvStatic(p) {
     const rows = StatEngine.filterRows(STATIC.items, { ...p, page: 1, pageSize: 5000 });
     const head = ['发行人', '市场', '板块', '类型', '审核状态', '状态阶段', '保荐机构', '受理日期',
-      '问询日期', '回复日期', '上会日期', '提交注册', '过会日期', '注册日期', '终止日期', '更新日期'];
+      '问询日期', '回复日期', '上会日期', '提交注册', '过会日期', '注册日期',
+      '发行日期', '发行价', '上市日期', '终止日期', '更新日期'];
     const lines = [head.join(',')];
     rows.forEach((x) => {
       lines.push([fullName(x), label('market', x.market), x.board, label('type', x.type),
         label('status', x.status), x.stage || '', x.sponsor_short, x.accept_date, x.inquiry_date,
         x.reply_date, x.meeting_date, x.submit_date, x.pass_date, x.register_date,
+        x.issue_date, x.issue_price, x.list_date,
         x.terminate_date, x.update_date].map(csvCell).join(','));
     });
     const blob = new Blob([`\ufeff${lines.join('\r\n')}`], { type: 'text/csv;charset=utf-8' });

@@ -151,7 +151,7 @@
     return out;
   }
 
-  function stageAt(stage, a, pa, rg, te, t, issue, listing) {
+  function stageAt(stage, a, pa, rg, te, t, issue, listing, su) {
     if (te && te < t) return '终止';
     if (listing && listing < t) return '已上市';
     if (issue && issue < t) return '已启动发行';
@@ -162,7 +162,9 @@
     }
     if (pa && pa < t) {
       if (ISSUED_STAGES.includes(stage)) return stage === '已发行' ? '已上市' : stage;
-      return '提交注册';
+      if (su && su < t) return '提交注册';
+      if (['提交注册', '补充审核', '中止及财报更新', '上市委会议'].includes(stage)) return stage;
+      return '上市委会议';
     }
     if (a && a < t) return ACTIVE_STAGES.has(stage) ? stage : (stage || '其他');
     return null;
@@ -198,7 +200,7 @@
         if (x.te && x.te >= bStart && x.te < bEnd) terminated += 1;
         if (base && !x.legacy && base < bEnd && !(x.pa && x.pa < bEnd) && !(x.rg && x.rg < bEnd) && !(x.te && x.te < bEnd)) reviewing += 1;
         if (x.pa && !x.legacy && x.pa < bEnd && !(x.rg && x.rg < bEnd) && !(x.te && x.te < bEnd)) pending += 1;
-        const at = x.legacy ? null : stageAt(x.st, x.a, x.pa, x.rg, x.te, bEnd, x.isd, x.lsd);
+        const at = x.legacy ? null : stageAt(x.st, x.a, x.pa, x.rg, x.te, bEnd, x.isd, x.lsd, x.su);
         if (at) stages[at] = (stages[at] || 0) + 1;
       });
       return {
@@ -242,7 +244,7 @@
     const boardStats = {};
     parsed.forEach((x) => {
       if (x.legacy) return;
-      const at = stageAt(x.st, x.a, x.pa, x.rg, x.te, tEnd, x.isd, x.lsd);
+      const at = stageAt(x.st, x.a, x.pa, x.rg, x.te, tEnd, x.isd, x.lsd, x.su);
       if (!at) return;
       const m = x.p.market;
       boardStats[m] = boardStats[m] || {};
@@ -341,7 +343,7 @@
         if (p.basis === 'stage') {
           return !String(x.id || '').startsWith('IFIND:')
             && stageAt(x.stage || '其他', a, pa, rg, te, tEnd,
-              toDate(x.issue_date), toDate(x.list_date)) === p.stage;
+              toDate(x.issue_date), toDate(x.list_date), toDate(x.submit_date)) === p.stage;
         }
         return false;
       });

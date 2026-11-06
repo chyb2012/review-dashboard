@@ -47,7 +47,7 @@
     return `<span class="pill" title="${esc(raw || '')}" style="color:${c};background:${c}1f;border-color:${c}55">${esc(text)}</span>`;
   }
 
-  const STATIC = { on: false, items: [], meta: null, extras: null, profileIds: null, docIds: null };
+  const STATIC = { on: false, items: [], meta: null, extras: null, profileIds: null, docIds: null, docs: null };
   const slug = (id) => String(id == null ? '' : id).replace(/[^0-9A-Za-z_-]/g, '_');
 
   async function staticApi(path, params) {
@@ -64,6 +64,18 @@
       const r = await fetch(`data/profiles/${slug(id)}.json`, { cache: 'no-store' });
       if (!r.ok) return { available: false, reason: '该项目的申报文件尚未收录' };
       return r.json();
+    }
+    const docs = path.match(/^\/api\/projects\/(.+)\/documents$/);
+    if (docs) {
+      const id = decodeURIComponent(docs[1]);
+      if (!STATIC.docs) {
+        STATIC.docs = await fetch('data/project_docs.json', { cache: 'no-store' })
+          .then((x) => (x.ok ? x.json() : { items: {} }))
+          .then((d) => d.items || {})
+          .catch(() => ({}));
+      }
+      const items = STATIC.docs[id] || [];
+      return { total: items.length, items };
     }
     const one = path.match(/^\/api\/projects\/(.+)$/);
     if (one) {
@@ -494,13 +506,12 @@
       <div class="d-grid">${items.map(([k, v]) => `<div class="item"><div class="k">${k}</div><div class="v">${esc(v)}</div></div>`).join('')}</div>
       <div class="d-sec">状态轨迹</div>
       ${evs ? `<div class="tl">${evs}</div>` : `<div class="empty" style="padding:8px 0">暂无状态变更记录，当前状态为首次采集结果</div>`}
-      <div class="d-sec">企业资料</div>
-      <button class="ghost profile-btn" id="profileOpenBtn" disabled>正在解析申报文件…</button>
-      <div class="hint" id="profileSummary" style="margin-top:6px"></div>
+      <div class="d-sec">披露文件</div>
+      <div id="docList" class="doc-list"><div class="hint">加载中…</div></div>
       <div class="d-sec">来源</div>
       <div class="v" style="font-size:12px;word-break:break-all">${p.source_url ? `<a href="${esc(p.source_url)}" target="_blank" rel="noopener" style="color:#5B4BE0">${esc(p.source_url)}</a>` : '未提供公开链接'}</div>`;
     $('#drawer').classList.add('open'); $('#overlay').classList.add('on');
-    loadProfile(id, fullName(p));
+    loadDocuments(id);
   }
 
   const BASIS_DATE_LABEL = {
@@ -564,35 +575,32 @@
     });
   }
 
-  let profileState = { data: null, name: '' };
+  function _fileSize(bytes) {
+    if (!bytes) return '';
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+    if (bytes < 1024 * 1024 * 1024) return (bytes / 1024 / 1024).toFixed(1) + ' MB';
+    return (bytes / 1024 / 1024 / 1024).toFixed(2) + ' GB';
+  }
 
-  async function loadProfile(id, name) {
-    const btn = $('#profileOpenBtn');
-    const summary = $('#profileSummary');
-    if (STATIC.on && !(STATIC.profileIds || new Set()).has(id)) {
-      const archived = (STATIC.docIds || new Set()).has(id);
-      btn.textContent = archived ? '申报文件已归档（静态版未解析）' : '知识库未收录该项目的申报文件';
-      btn.disabled = true;
-      summary.textContent = archived ? '该项目申报文件已归档；静态版仅提供已解析的部分资料，本地版可即时解析。' : '';
-      return;
-    }
+  async function loadDocuments(id) {
+    const el = $('#docList');
     try {
-      const d = await api(`/api/projects/${encodeURIComponent(id)}/profile`);
-      profileState = { data: d, name: name || '' };
-      if (!d.available) {
-        btn.textContent = '暂无可解析申报文件';
-        btn.disabled = true;
-        summary.textContent = d.reason || '';
+      const d = await api(`/api/projects/${encodeURIComponent(id)}/documents`);
+      if (!d.items || !d.items.length) {
+        el.innerHTML = `<div class="hint" style="padding:8px 0">暂未获取到披露文件。</div>`;
         return;
       }
-      btn.textContent = `查看企业资料（${d.sections.length} 部分）`;
-      btn.disabled = false;
-      btn.onclick = openProfileModal;
-      summary.textContent = `来源：${d.document}`;
+      el.innerHTML = `<div class="doc-meta">共 ${d.total} 份文件 · 按日期倒序</div>
+        <ul class="doc-ul">${d.items.map((f) => `
+          <li class="doc-li">
+            <a href="${esc(f.url)}" target="_blank" rel="noopener" class="doc-link">
+              <span class="doc-title">${esc(f.title)}</span>
+              <span class="doc-meta-sm">${esc(f.date)}${f.size ? ' · ' + _fileSize(f.size) : ''}${f.source ? ' · ' + esc(f.source) : ''}</span>
+            </a>
+          </li>`).join('')}</ul>`;
     } catch (e) {
-      btn.textContent = '企业资料加载失败';
-      btn.disabled = true;
-      summary.textContent = e.message;
+      el.innerHTML = `<div class="hint" style="padding:8px 0">加载失败：${esc(e.message)}</div>`;
     }
   }
 

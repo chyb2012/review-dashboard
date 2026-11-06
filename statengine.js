@@ -156,9 +156,9 @@
     if (listing && listing < t) return '已上市';
     if (issue && issue < t) return '已启动发行';
     if (rg && rg < t) {
+      if (stage === '注册结果' || stage === '审核结果') return stage;
       if (stage === '已发行' || stage === '已上市') return '已上市';
       if (stage === '已启动发行') return '已启动发行';
-      return '注册结果';
     }
     if (pa && pa < t) {
       if (ISSUED_STAGES.includes(stage)) return stage === '已发行' ? '已上市' : stage;

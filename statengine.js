@@ -151,8 +151,11 @@
     return out;
   }
 
-  function stageAt(stage, a, pa, rg, te, t, issue, listing, su) {
-    if (te && te < t) return '终止';
+  function stageAt(stage, a, pa, rg, te, t, issue, listing, su, raw) {
+    if (te && te < t) {
+      const regTerm = /终止注册|撤销注册/.test(raw || '');
+      return ['注册结果', '审核结果'].includes(stage) && regTerm ? stage : '终止';
+    }
     if (listing && listing < t) return '已上市';
     if (issue && issue < t) return '已启动发行';
     if (rg && rg < t) {
@@ -180,7 +183,7 @@
     const parsed = rows.map((x) => ({
       p: x, a: toDate(x.accept_date), inq: toDate(x.inquiry_date), rep: toDate(x.reply_date),
       pa: toDate(x.pass_date), su: toDate(x.submit_date), rg: toDate(x.register_date),
-      te: toDate(x.terminate_date), st: x.stage || '其他',
+      te: toDate(x.terminate_date), st: x.stage || '其他', sr: x.status_raw || '',
       isd: toDate(x.issue_date), lsd: toDate(x.list_date),
       legacy: String(x.id || '').startsWith('IFIND:'),
     }));
@@ -200,7 +203,7 @@
         if (x.te && x.te >= bStart && x.te < bEnd) terminated += 1;
         if (base && !x.legacy && base < bEnd && !(x.pa && x.pa < bEnd) && !(x.rg && x.rg < bEnd) && !(x.te && x.te < bEnd)) reviewing += 1;
         if (x.pa && !x.legacy && x.pa < bEnd && !(x.rg && x.rg < bEnd) && !(x.te && x.te < bEnd)) pending += 1;
-        const at = x.legacy ? null : stageAt(x.st, x.a, x.pa, x.rg, x.te, bEnd, x.isd, x.lsd, x.su);
+        const at = x.legacy ? null : stageAt(x.st, x.a, x.pa, x.rg, x.te, bEnd, x.isd, x.lsd, x.su, x.sr);
         if (at) stages[at] = (stages[at] || 0) + 1;
       });
       return {
@@ -244,7 +247,7 @@
     const boardStats = {};
     parsed.forEach((x) => {
       if (x.legacy) return;
-      const at = stageAt(x.st, x.a, x.pa, x.rg, x.te, tEnd, x.isd, x.lsd, x.su);
+      const at = stageAt(x.st, x.a, x.pa, x.rg, x.te, tEnd, x.isd, x.lsd, x.su, x.sr);
       if (!at) return;
       const m = x.p.market;
       boardStats[m] = boardStats[m] || {};
@@ -343,7 +346,7 @@
         if (p.basis === 'stage') {
           return !String(x.id || '').startsWith('IFIND:')
             && stageAt(x.stage || '其他', a, pa, rg, te, tEnd,
-              toDate(x.issue_date), toDate(x.list_date), toDate(x.submit_date)) === p.stage;
+              toDate(x.issue_date), toDate(x.list_date), toDate(x.submit_date), x.status_raw) === p.stage;
         }
         return false;
       });

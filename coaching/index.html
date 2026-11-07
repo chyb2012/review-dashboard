@@ -35,6 +35,10 @@
   --accent2: #DC2626;
   --green: #059669;
   --grey: #9CA3AF;
+  --amber: #D97706;
+  --cyan: #0891B2;
+  --violet: #7C3AED;
+  --rose: #C2415E;
   --radius: 6px;
   --font-sans: 'Work Sans', 'Microsoft YaHei', 'PingFang SC', 'Hiragino Sans GB', 'Noto Sans SC', sans-serif;
   --font-num: 'Work Sans', 'JetBrains Mono', 'Microsoft YaHei', sans-serif;
@@ -170,11 +174,22 @@ h2 {
 }
 .kpi.total { border-top-color: var(--ink); }
 .kpi.ongoing { border-top-color: var(--accent); }
-.kpi.done { border-top-color: var(--green); }
-.kpi.withdraw { border-top-color: var(--accent2); }
-.kpi.plain { border-top-color: var(--grey); }
-.kpi.done .k-value { color: var(--green); }
-.kpi.withdraw .k-value { color: var(--accent2); }
+.kpi.done { border-top-color: var(--amber); }
+.kpi.check { border-top-color: var(--cyan); }
+.kpi.withdraw { border-top-color: var(--violet); }
+.kpi.stop { border-top-color: var(--grey); }
+.kpi.total .k-value { color: var(--ink); }
+.kpi.ongoing .k-value { color: var(--accent); }
+.kpi.done .k-value { color: var(--amber); }
+.kpi.check .k-value { color: var(--cyan); }
+.kpi.withdraw .k-value { color: var(--violet); }
+.kpi.stop .k-value { color: var(--grey); }
+.kpi.total { background: linear-gradient(180deg, #F3F4F6 0%, var(--bg2) 52%); }
+.kpi.ongoing { background: linear-gradient(180deg, #FBEAED 0%, var(--bg2) 52%); }
+.kpi.done { background: linear-gradient(180deg, #FEF3C7 0%, var(--bg2) 52%); }
+.kpi.check { background: linear-gradient(180deg, #ECFEFF 0%, var(--bg2) 52%); }
+.kpi.withdraw { background: linear-gradient(180deg, #F5F3FF 0%, var(--bg2) 52%); }
+.kpi.stop { background: linear-gradient(180deg, #F3F4F6 0%, var(--bg2) 52%); }
 
 /* ---------- Charts ---------- */
 .chart-grid {
@@ -194,7 +209,24 @@ h2 {
   font-weight: 700;
   color: var(--ink);
   margin-bottom: 6px;
+  position: relative;
+  padding-left: 13px;
 }
+.chart-figure figcaption::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  width: 7px;
+  height: 7px;
+  margin-top: -4px;
+  border-radius: 2px;
+  background: var(--accent);
+}
+.chart-grid > .card:nth-child(1) figcaption::before { background: var(--accent); }
+.chart-grid > .card:nth-child(2) figcaption::before { background: var(--violet); }
+.chart-grid > .card:nth-child(3) figcaption::before { background: var(--cyan); }
+.chart-grid > .card:nth-child(4) figcaption::before { background: var(--amber); }
 .chart-figure figcaption span {
   font-weight: 400;
   color: var(--muted);
@@ -392,10 +424,10 @@ td.title {
   border: 1px solid transparent;
 }
 .tag.ongoing { background: #FBEAED; color: #9A1831; border-color: #F3CFD5; }
-.tag.done { background: #ECFDF5; color: #059669; border-color: #BBF7D0; }
-.tag.withdraw { background: #FEF2F2; color: #DC2626; border-color: #FECACA; }
+.tag.done { background: #FEF3C7; color: #B45309; border-color: #FDE68A; }
+.tag.withdraw { background: #F5F3FF; color: #6D28D9; border-color: #DDD6FE; }
 .tag.stop { background: #F3F4F6; color: #6B7280; border-color: #E5E7EB; }
-.tag.check { background: #EFF6FF; color: #2563EB; border-color: #BFDBFE; }
+.tag.check { background: #ECFEFF; color: #0E7490; border-color: #A5F3FC; }
 
 .empty {
   padding: 48px 20px;
@@ -477,10 +509,10 @@ footer .defs { margin: 0; padding-left: 18px; }
 .funnel-row{display:grid;grid-template-columns:88px 1fr 92px 104px;gap:12px;align-items:center}
 .funnel-label{font-size:13px;font-weight:600;color:#374151}
 .funnel-track{height:26px;background:#F3F4F6;border-radius:6px;overflow:hidden}
-.funnel-bar{height:100%;border-radius:6px;background:#2563EB;display:flex;align-items:center;
+.funnel-bar{height:100%;border-radius:6px;background:#9A1831;display:flex;align-items:center;
   padding:0 10px;color:#fff;font-size:12px;min-width:42px;box-sizing:border-box;transition:width .4s ease}
-.funnel-row:nth-child(2) .funnel-bar{background:#2563EB}
-.funnel-row:nth-child(3) .funnel-bar{background:#5B4BE0}
+.funnel-row:nth-child(2) .funnel-bar{background:#9A1831}
+.funnel-row:nth-child(3) .funnel-bar{background:#7C3AED}
 .funnel-row:nth-child(4) .funnel-bar{background:#059669}
 .funnel-rate{font-size:13px;color:#111827;text-align:right;font-variant-numeric:tabular-nums}
 .funnel-rate.muted{color:#6B7280;font-size:12px}
@@ -555,7 +587,7 @@ footer .defs { margin: 0; padding-left: 18px; }
         <div class="k-value">33</div>
         <div class="k-sub">占 2.8%</div>
       </div>
-      <div class="kpi plain">
+      <div class="kpi check">
         <div class="k-label">辅导验收</div>
         <div class="k-value">8</div>
         <div class="k-sub">占 0.7%</div>
@@ -565,7 +597,7 @@ footer .defs { margin: 0; padding-left: 18px; }
         <div class="k-value">76</div>
         <div class="k-sub">占 6.4%</div>
       </div>
-      <div class="kpi plain">
+      <div class="kpi stop">
         <div class="k-label">辅导验收终止</div>
         <div class="k-value">1</div>
         <div class="k-sub">占 0.1%</div>
@@ -698,7 +730,7 @@ footer .defs { margin: 0; padding-left: 18px; }
 
 </main>
 
-<script src="assets/data.js?v=20261107190504"></script>
+<script src="assets/data.js?v=20261107203721"></script>
 <script>
 
 /*
@@ -756,6 +788,10 @@ var Fr={},Gr={};var Wr,Hr=function(){function t(t,e,n){var i=this;this._sleepAft
   var accent2 = style.getPropertyValue('--accent2').trim();
   var green = style.getPropertyValue('--green').trim();
   var grey = style.getPropertyValue('--grey').trim();
+  var amber = style.getPropertyValue('--amber').trim() || '#D97706';
+  var cyan = style.getPropertyValue('--cyan').trim() || '#0891B2';
+  var violet = style.getPropertyValue('--violet').trim() || '#7C3AED';
+  var rose = style.getPropertyValue('--rose').trim() || '#C2415E';
   var ink = style.getPropertyValue('--ink').trim();
   var muted = style.getPropertyValue('--muted').trim();
   var rule = style.getPropertyValue('--rule').trim();
@@ -781,9 +817,9 @@ var Fr={},Gr={};var Wr,Hr=function(){function t(t,e,n){var i=this;this._sleepAft
   var statusOrder = ['辅导备案', '辅导工作完成', '辅导验收', '撤回辅导备案', '辅导验收终止'];
   var statusColors = {
     '辅导备案': accent,
-    '辅导工作完成': green,
-    '辅导验收': '#2563EB',
-    '撤回辅导备案': accent2,
+    '辅导工作完成': amber,
+    '辅导验收': cyan,
+    '撤回辅导备案': violet,
     '辅导验收终止': grey
   };
   var sc = countBy(4);
@@ -831,6 +867,12 @@ var Fr={},Gr={};var Wr,Hr=function(){function t(t,e,n){var i=this;this._sleepAft
   });
 
   // ---------- 派出机构 Top12 ----------
+  var regionGrad = new echarts.graphic.LinearGradient(0, 0, 1, 0, [
+    { offset: 0, color: rose }, { offset: 1, color: accent }
+  ]);
+  var agencyGrad = new echarts.graphic.LinearGradient(0, 0, 1, 0, [
+    { offset: 0, color: '#A78BFA' }, { offset: 1, color: violet }
+  ]);
   var rc = sortDesc(countBy(5)).slice(0, 12).reverse();
   var regionChart = echarts.init(document.getElementById('chart-region'), null, { renderer: 'svg' });
   regionChart.setOption({
@@ -856,7 +898,7 @@ var Fr={},Gr={};var Wr,Hr=function(){function t(t,e,n){var i=this;this._sleepAft
       type: 'bar',
       data: rc.map(function (d) { return d.value; }),
       barWidth: '56%',
-      itemStyle: { color: accent, borderRadius: [0, 2, 2, 0] },
+      itemStyle: { color: regionGrad, borderRadius: [0, 2, 2, 0] },
       label: { show: true, position: 'right', color: muted, fontSize: 10, fontFamily: "'Work Sans'" }
     }]
   });
@@ -903,7 +945,7 @@ var Fr={},Gr={};var Wr,Hr=function(){function t(t,e,n){var i=this;this._sleepAft
       type: 'bar',
       data: ac.map(function (d) { return d.value; }),
       barWidth: '56%',
-      itemStyle: { color: accent, borderRadius: [0, 2, 2, 0] },
+      itemStyle: { color: agencyGrad, borderRadius: [0, 2, 2, 0] },
       label: { show: true, position: 'right', color: muted, fontSize: 10, fontFamily: "'Work Sans'" }
     }]
   });
@@ -912,6 +954,12 @@ var Fr={},Gr={};var Wr,Hr=function(){function t(t,e,n){var i=this;this._sleepAft
   });
 
   // ---------- 备案年度 ----------
+  function mixHex(a, b, t) {
+    var pa = [parseInt(a.slice(1, 3), 16), parseInt(a.slice(3, 5), 16), parseInt(a.slice(5, 7), 16)];
+    var pb = [parseInt(b.slice(1, 3), 16), parseInt(b.slice(3, 5), 16), parseInt(b.slice(5, 7), 16)];
+    var c = pa.map(function (v, i) { return Math.round(v + (pb[i] - v) * t); });
+    return 'rgb(' + c.join(',') + ')';
+  }
   var years = [];
   DATA.forEach(function (r) {
     var y = Number(String(r[3]).slice(0, 4));
@@ -953,7 +1001,9 @@ var Fr={},Gr={};var Wr,Hr=function(){function t(t,e,n){var i=this;this._sleepAft
       barWidth: '62%',
       itemStyle: {
         color: function (p) {
-          return p.name === String(maxY) ? '#D97706' : accent;
+          var i = yearLabels.indexOf(p.name);
+          if (i === yearLabels.length - 1) return '#D97706';
+          return mixHex(accent, amber, yearLabels.length > 1 ? i / (yearLabels.length - 1) : 1);
         },
         borderRadius: [2, 2, 0, 0]
       },
@@ -1150,6 +1200,6 @@ var Fr={},Gr={};var Wr,Hr=function(){function t(t,e,n){var i=this;this._sleepAft
     <div class="modal-body" id="coachModalBody"></div>
   </div>
 </div>
-<script src="assets/funnel.js?v=20261107190504"></script>
+<script src="assets/funnel.js?v=20261107203721"></script>
 </body>
 </html>

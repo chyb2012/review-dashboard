@@ -708,6 +708,20 @@
 
   /* ---------- events ---------- */
   function bind() {
+    const setView = (v) => {
+      $('#filters').classList.toggle('hidden', v !== 'review');
+      $('main').classList.toggle('hidden', v !== 'review');
+      $('#coachingView').classList.toggle('hidden', v !== 'coaching');
+      [...$('#viewTabs').children].forEach((b) => b.classList.toggle('on', b.dataset.view === v));
+      if (v === 'coaching') {
+        const f = $('#coachingFrame');
+        if (!f.getAttribute('src')) f.setAttribute('src', f.dataset.src);
+      }
+    };
+    $('#viewTabs').addEventListener('click', (e) => {
+      const b = e.target.closest('.view-tab'); if (!b) return;
+      setView(b.dataset.view);
+    });
     $('#granSeg').addEventListener('click', (e) => {
       const b = e.target.closest('button'); if (!b) return;
       state.gran = b.dataset.v;

@@ -4,9 +4,9 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>发行上市审核动态 · 沪深北与股转</title>
-<link rel="stylesheet" href="./styles.css?v=20261107003035">
+<link rel="stylesheet" href="./styles.css?v=20261107114029">
 <script src="./vendor/echarts.min.js"></script>
-<script src="./statengine.js?v=20261107003035"></script>
+<script src="./statengine.js?v=20261107114029"></script>
 </head>
 <body data-static="1">
 <header class="masthead">
@@ -22,6 +22,11 @@
     <button class="ghost" id="refreshBtn">刷新数据</button>
   </div>
 </header>
+
+<nav class="view-tabs" id="viewTabs">
+  <button class="view-tab on" data-view="review">发行审核动态</button>
+  <button class="view-tab" data-view="coaching">辅导项目看板</button>
+</nav>
 
 <section class="filters" id="filters">
   <div class="fblock">
@@ -194,6 +199,9 @@
 
 <div class="toast" id="toast"></div>
 <div class="mix-tip" id="mixTip"></div>
-<script src="./app.js?v=20261107003035"></script>
+<section class="coaching-view hidden" id="coachingView">
+  <iframe id="coachingFrame" title="辅导项目看板" data-src="./coaching/index.html"></iframe>
+</section>
+<script src="./app.js?v=20261107114029"></script>
 </body>
 </html>

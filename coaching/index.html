@@ -236,7 +236,7 @@ h2 {
 .chart-box { width: 100%; height: 300px; }
 .chart-box.tall { height: 360px; }
 .chart-scroll {
-  height: 520px;
+  height: 370px;
   overflow-y: auto;
   overflow-x: hidden;
   padding-right: 4px;
@@ -636,25 +636,25 @@ footer .defs { margin: 0; padding-left: 18px; }
       <div class="card">
         <figure class="chart-figure">
           <figcaption>辅导状态构成<span>单位：个</span></figcaption>
-          <div id="chart-status" class="chart-box"></div>
+          <div id="chart-status" class="chart-box tall"></div>
         </figure>
       </div>
       <div class="card">
         <figure class="chart-figure">
-          <figcaption>派出机构分布<span>单位：个 · 全量</span></figcaption>
+          <figcaption>派出机构分布<span>单位：个 · 默认前 15，可滚动查看全部</span></figcaption>
           <div class="chart-scroll"><div id="chart-region" class="chart-box"></div></div>
         </figure>
       </div>
       <div class="card">
         <figure class="chart-figure">
-          <figcaption>辅导机构分布<span>单位：个 · 全量</span></figcaption>
+          <figcaption>辅导机构分布<span>单位：个 · 默认前 15，可滚动查看全部</span></figcaption>
           <div class="chart-scroll"><div id="chart-agency" class="chart-box"></div></div>
         </figure>
       </div>
       <div class="card">
         <figure class="chart-figure">
           <figcaption>辅导备案年度分布<span>单位：个 · 按备案时间年份</span></figcaption>
-          <div id="chart-year" class="chart-box"></div>
+          <div id="chart-year" class="chart-box tall"></div>
         </figure>
       </div>
     </div>
@@ -733,7 +733,7 @@ footer .defs { margin: 0; padding-left: 18px; }
 
 </main>
 
-<script src="assets/data.js?v=20261107213742"></script>
+<script src="assets/data.js?v=20261107215420"></script>
 <script>
 
 /*
@@ -1215,6 +1215,6 @@ var Fr={},Gr={};var Wr,Hr=function(){function t(t,e,n){var i=this;this._sleepAft
     <div class="modal-body" id="coachModalBody"></div>
   </div>
 </div>
-<script src="assets/funnel.js?v=20261107213742"></script>
+<script src="assets/funnel.js?v=20261107215420"></script>
 </body>
 </html>

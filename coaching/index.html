@@ -516,20 +516,18 @@ footer .defs { margin: 0; padding-left: 18px; }
   section { page-break-inside: avoid; }
 }
 
-.funnel-wrap{display:flex;flex-direction:column;gap:12px;padding:6px 0 2px}
-.funnel-row{display:grid;grid-template-columns:88px 1fr 92px 104px;gap:12px;align-items:center}
-.funnel-label{font-size:13px;font-weight:600;color:#374151}
-.funnel-track{height:26px;background:#F3F4F6;border-radius:6px;overflow:hidden}
-.funnel-bar{height:100%;border-radius:6px;background:#9A1831;display:flex;align-items:center;
-  padding:0 10px;color:#fff;font-size:12px;min-width:42px;box-sizing:border-box;transition:width .4s ease}
-.funnel-row:nth-child(2) .funnel-bar{background:#9A1831}
-.funnel-row:nth-child(3) .funnel-bar{background:#7C3AED}
-.funnel-row:nth-child(4) .funnel-bar{background:#059669}
+.funnel-wrap{display:flex;flex-direction:column;gap:9px;padding:6px 0 2px}
+.funnel-row{display:grid;grid-template-columns:116px 1fr 52px 104px;gap:12px;align-items:center}
+.funnel-row.state{border-top:1px dashed #E5E7EB;padding-top:9px;margin-top:2px}
+.funnel-label{font-size:12.5px;font-weight:600;color:#374151}
+.funnel-track{height:22px;background:#F3F4F6;border-radius:5px;overflow:hidden}
+.funnel-bar{height:100%;border-radius:5px;transition:width .4s ease}
+.funnel-count{font-size:13px;font-weight:700;color:#111827;text-align:right;font-variant-numeric:tabular-nums}
 .funnel-rate{font-size:13px;color:#111827;text-align:right;font-variant-numeric:tabular-nums}
 .funnel-rate.muted{color:#6B7280;font-size:12px}
 .funnel-note{margin-top:10px;font-size:12px;color:#6B7280;line-height:1.7}
 @media(max-width:720px){
-  .funnel-row{grid-template-columns:72px 1fr 70px;gap:8px}
+  .funnel-row{grid-template-columns:96px 1fr 46px;gap:8px}
   .funnel-rate.muted{display:none}
 }
 
@@ -733,7 +731,7 @@ footer .defs { margin: 0; padding-left: 18px; }
 
 </main>
 
-<script src="assets/data.js?v=20261107215420"></script>
+<script src="assets/data.js?v=20261108231414"></script>
 <script>
 
 /*
@@ -1215,6 +1213,6 @@ var Fr={},Gr={};var Wr,Hr=function(){function t(t,e,n){var i=this;this._sleepAft
     <div class="modal-body" id="coachModalBody"></div>
   </div>
 </div>
-<script src="assets/funnel.js?v=20261107215420"></script>
+<script src="assets/funnel.js?v=20261108231414"></script>
 </body>
 </html>

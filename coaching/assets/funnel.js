@@ -74,38 +74,52 @@
     }
   }
 
-  /* ---------- 转化漏斗 ---------- */
+  /* ---------- 转化漏斗（横向柱状图，绝对数量） ---------- */
+  var BAR_COLORS = {
+    filing: '#6B7280',
+    accepted: '#9A1831',
+    inquiry: '#B32B4A',
+    reply: '#C2415E',
+    passed: '#D97706',
+    submit: '#B45309',
+    registered: '#059669',
+    issued: '#0891B2',
+    listed: '#0F766E',
+    abort: '#9CA3AF',
+    terminated: '#DC2626'
+  };
+
   function renderFunnel(f) {
     var wrap = document.getElementById('funnelSteps');
-    if (!wrap || !f || !f.stages || !f.stages.length) return;
+    if (!wrap || !f || !f.bars || !f.bars.length) return;
 
-    var base = f.stages[0].count || 1;
-    var html = '';
-    f.stages.slice(1).forEach(function (s, k) {
-      var i = k + 1;
-      var share = base ? s.count / base * 100 : 0;
-      var width = Math.max(share, 3);
-      var stepRate = i === 0 ? '基准'
-        : (i === 1 ? '占匹配项目 ' : '环节转化 ') + s.rate.toFixed(1) + '%';
-      html +=
-        '<div class="funnel-row" data-idx="' + (9 + i) + '" title="' + s.label + '：' + fmt(s.count) + ' 家">' +
-          '<div class="funnel-label">' + s.label + '</div>' +
-          '<div class="funnel-track">' +
-            '<div class="funnel-bar" style="width:' + width.toFixed(1) + '%">' + fmt(s.count) + '</div>' +
-          '</div>' +
-          '<div class="funnel-rate">' + share.toFixed(1) + '%</div>' +
-          '<div class="funnel-rate muted">' + stepRate + '</div>' +
-        '</div>';
-    });
+    var base = f.bars[0].count || 1;
+    var html = f.bars.map(function (b) {
+      var share = base ? b.count / base * 100 : 0;
+      var width = b.count ? Math.max(share, 1.5) : 0;
+      var note = b.kind === 'base' ? '基准'
+        : (b.kind === 'state' ? '当前状态' : '环节转化 ' + (b.rate || 0).toFixed(1) + '%');
+      return '<div class="funnel-row' + (b.kind === 'state' ? ' state' : '') + '" data-key="' + b.key +
+        '" title="' + b.label + '：' + fmt(b.count) + ' 家">' +
+        '<div class="funnel-label">' + b.label + '</div>' +
+        '<div class="funnel-track">' +
+          '<div class="funnel-bar" style="width:' + width.toFixed(1) + '%;background:' +
+            (BAR_COLORS[b.key] || '#9A1831') + '"></div>' +
+        '</div>' +
+        '<div class="funnel-count">' + fmt(b.count) + '</div>' +
+        '<div class="funnel-rate muted">' + note + '</div>' +
+      '</div>';
+    }).join('');
     wrap.innerHTML = html;
 
     var note = document.getElementById('funnelNote2');
     if (note) {
-      note.innerHTML = '口径：辅导备案为全部公示企业（' + fmt(f.stages[0].count) + ' 家）；后三段为其中按企业名称精确匹配到审核项目的结果，' +
-        '计数为“累计曾到达”该阶段（日期缺失时按审核阶段推断）。' +
+      note.innerHTML = '口径：辅导备案为全部公示企业（' + fmt(f.stages[0].count) + ' 家）；' +
+        '「已受理」至「已上市」为其中按企业名称精确匹配到审核项目、且累计曾到达该阶段的家数' +
+        '（日期缺失时按审核阶段推断）；「中止及财报更新」「终止」为匹配项目当前所处状态，与其他阶段口径不同。' +
         '匹配成功 <b>' + fmt(f.matched) + '</b> 家（匹配率 ' + (f.match_rate || 0).toFixed(1) + '%），未匹配 <b>' +
         fmt(f.unmatched) + '</b> 家（多为已上市多年或已终止、当前不在审核库的企业）。' +
-        '第三列“%”为占全部辅导备案企业比例，第四列为匹配项目内部的逐段转化率。';
+        '第三列为绝对家数，柱长按“占全部辅导备案企业”比例绘制，第四列为相对上一阶段的环节转化率或状态说明。';
     }
 
     var head = document.getElementById('funnelNote');
@@ -188,11 +202,14 @@
       wrap.addEventListener('click', function (e) {
         var row = e.target.closest('.funnel-row');
         if (!row) return;
-        var idx = Number(row.dataset.idx);
+        var key = row.dataset.key;
         var label = row.querySelector('.funnel-label').textContent;
-        var list = rows().filter(function (r) { return r[idx]; });
-        openList('转化漏斗 · ' + label,
-          '口径：辅导企业按名称匹配到审核项目，且累计曾到达「' + label + '」阶段', list);
+        var fn = FILTERS[key];
+        if (!fn) return;
+        var sub = (key === 'abort' || key === 'terminated')
+          ? '口径：匹配项目当前审核阶段为「' + label + '」'
+          : '口径：辅导企业按名称匹配到审核项目，且累计曾到达「' + label + '」阶段';
+        openList('转化漏斗 · ' + label, sub, rows().filter(function (r) { return fn(r); }));
       });
     }
   }
@@ -202,9 +219,17 @@
     region: function (r, n) { return r[5] === n; },
     agency: function (r, n) { return r[2] === n; },
     year: function (r, n) { return String(r[3] || '').slice(0, 4) === String(n); },
+    filing: function () { return true; },
     accepted: function (r) { return r[10]; },
+    inquiry: function (r) { return r[15]; },
+    reply: function (r) { return r[16]; },
     passed: function (r) { return r[11]; },
-    registered: function (r) { return r[12]; }
+    submit: function (r) { return r[17]; },
+    registered: function (r) { return r[12]; },
+    issued: function (r) { return r[18]; },
+    listed: function (r) { return r[19]; },
+    abort: function (r) { return r[13] === '中止及财报更新'; },
+    terminated: function (r) { return r[13] === '终止'; }
   };
   var TITLES = {
     status: '辅导状态构成', region: '派出机构分布', agency: '辅导机构分布', year: '备案年度'

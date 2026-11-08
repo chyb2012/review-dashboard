@@ -113,7 +113,7 @@ main{padding:18px 32px 56px}
 .mix-tip.on{opacity:1;transform:translateY(0)}
 .mix-tip b{font-weight:600}
 
-.sponsor-board{display:flex;flex-direction:column;gap:1px;max-height:330px;overflow:auto}
+.sponsor-board{display:flex;flex-direction:column;gap:1px;max-height:350px;overflow:auto}
 .sb-row{display:grid;grid-template-columns:26px 1fr 56px 1fr;align-items:center;gap:10px;padding:7px 4px;cursor:pointer;border-radius:6px;font-size:12px}
 .sb-row:hover{background:#F9FAFB}
 .sb-row .rk{width:20px;height:20px;line-height:20px;text-align:center;border-radius:5px;background:#F3F4F6;color:var(--muted);font-size:11px;font-weight:600}

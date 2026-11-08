@@ -298,6 +298,7 @@
     const all = ['已受理', '已问询', '已回复', '上市委会议', '补充审核', '中止及财报更新',
       '提交注册', '已发行', '其他'];
     const stages = all.filter((st) => rows.some((r) => (r.stages || {})[st]));
+    const maxTotal = Math.max(1, ...rows.map((r) => stages.reduce((a, k) => a + ((r.stages || {})[k] || 0), 0)));
     box.innerHTML = rows.map((r) => {
       const st = r.stages || {};
       const total = stages.reduce((a, k) => a + (st[k] || 0), 0);
@@ -311,7 +312,8 @@
           + ` data-label="${esc(`${label('market', r.market)} · ${k}`)}" data-value="${v}"></span>`;
       }).join('');
       return `<div class="mix-row"><span class="mix-name">${esc(label('market', r.market))}</span>`
-        + `<div class="mix-track">${segs}</div><span class="mix-total">${num(total)}</span></div>`;
+        + `<div class="mix-track" style="width:${(total / maxTotal * 100).toFixed(2)}%;justify-self:start">${segs}</div>`
+        + `<span class="mix-total">${num(total)}</span></div>`;
     }).join('');
     legend.innerHTML = stages.map((k) => `<span class="ld"><i style="background:${STAGE_COLORS[k] || '#CBD5E1'}"></i>${esc(k)}</span>`).join('');
   }
@@ -407,8 +409,8 @@
 
   async function renderSponsorBoard() {
     let d;
-    try { d = await api('/api/sponsors', { ...filters(false), pageSize: 30 }); } catch (e) { return; }
-    const rows = d.items.filter((r) => r.passed > 0).slice(0, 12);
+    try { d = await api('/api/sponsors', { ...filters(false), pageSize: 500 }); } catch (e) { return; }
+    const rows = d.items.filter((r) => r.passed > 0);
     if (!rows.length) { $('#sponsorBoard').innerHTML = '<div class="sb-empty">选定期间内暂无过会项目</div>'; return; }
     const max = Math.max(...rows.map((r) => r.passed), 1);
     $('#sponsorBoard').innerHTML = rows.map((r, i) => `

@@ -714,9 +714,14 @@
       $('#filters').classList.toggle('hidden', v !== 'review');
       $('main').classList.toggle('hidden', v !== 'review');
       $('#coachingView').classList.toggle('hidden', v !== 'coaching');
+      $('#bondView').classList.toggle('hidden', v !== 'bond');
       [...$('#viewTabs').children].forEach((b) => b.classList.toggle('on', b.dataset.view === v));
       if (v === 'coaching') {
         const f = $('#coachingFrame');
+        if (!f.getAttribute('src')) f.setAttribute('src', f.dataset.src);
+      }
+      if (v === 'bond') {
+        const f = $('#bondFrame');
         if (!f.getAttribute('src')) f.setAttribute('src', f.dataset.src);
       }
     };

@@ -262,4 +262,73 @@
     $('applyNote').textContent = '共 ' + num(APPLY.length) + ' 家 · ' +
       Object.keys(snaps).length + ' 期公示（截至 ' + (Object.keys(snaps).sort().pop() || '—') + '）';
   }
+  /* ---------- 证监会债券注册批复与审核公告 ---------- */
+  var NOTICES = window.__BOND_NOTICES__ || [];
+  var KIND = { reg: '注册批复', process: '审核流程', notice: '其他公告' };
+  var nState = { q: '', kind: '', page: 1, per: 20 };
+
+  function nFiltered() {
+    var q = nState.q.trim().toLowerCase();
+    return NOTICES.filter(function (r) {
+      if (nState.kind && r[2] !== nState.kind) return false;
+      if (q && String(r[1] || '').toLowerCase().indexOf(q) === -1) return false;
+      return true;
+    });
+  }
+
+  function nRender() {
+    var rows = nFiltered();
+    var totalRows = rows.length;
+    var pages = Math.max(1, Math.ceil(totalRows / nState.per));
+    if (nState.page > pages) nState.page = pages;
+    var start = (nState.page - 1) * nState.per;
+    $('nCnt').textContent = num(totalRows);
+    $('noticeBody').innerHTML = rows.length ? rows.slice(start, start + nState.per).map(function (r) {
+      var att = r[4] ? '<a href="' + esc(r[4]) + '" target="_blank" rel="noopener">' +
+        (r[3] === 'zip' ? 'ZIP 下载' : (r[3] === 'pdf' ? 'PDF 查看' : '附件')) + '</a>' : '—';
+      return '<tr>' +
+        '<td class="num">' + esc(r[0] || '—') + '</td>' +
+        '<td>' + esc(KIND[r[2]] || r[2]) + '</td>' +
+        '<td class="t-name" title="' + esc(r[1]) + '">' + esc(r[1]) + '</td>' +
+        '<td>' + att + '</td>' +
+        '<td><a class="t-link" href="' + esc(r[5]) + '" target="_blank" rel="noopener">原文</a></td>' +
+        '</tr>';
+    }).join('') : '<tr><td colspan="5" style="text-align:center;padding:30px;color:#6B7280">没有符合条件的公告</td></tr>';
+
+    var btns = ['<span class="info">第 ' + nState.page + ' / ' + pages + ' 页</span>'];
+    btns.push('<button data-p="1"' + (nState.page === 1 ? ' disabled' : '') + '>首页</button>');
+    btns.push('<button data-p="' + (nState.page - 1) + '"' + (nState.page === 1 ? ' disabled' : '') + '>‹</button>');
+    var from = Math.max(1, nState.page - 3), to = Math.min(pages, from + 6);
+    if (to - from < 6) from = Math.max(1, to - 6);
+    for (var p = from; p <= to; p++) {
+      btns.push('<button data-p="' + p + '" class="' + (p === nState.page ? 'active' : '') + '">' + p + '</button>');
+    }
+    btns.push('<button data-p="' + (nState.page + 1) + '"' + (nState.page === pages ? ' disabled' : '') + '>›</button>');
+    btns.push('<button data-p="' + pages + '"' + (nState.page === pages ? ' disabled' : '') + '>末页</button>');
+    $('nPager').innerHTML = btns.join('');
+  }
+
+  if ($('noticeBody')) {
+    var nTimer;
+    $('nq').addEventListener('input', function (e) {
+      clearTimeout(nTimer);
+      var v = e.target.value;
+      nTimer = setTimeout(function () { nState.q = v; nState.page = 1; nRender(); }, 160);
+    });
+    $('nKind').addEventListener('change', function (e) {
+      nState.kind = e.target.value; nState.page = 1; nRender();
+    });
+    $('nPager').addEventListener('click', function (e) {
+      var b = e.target.closest('button');
+      if (!b || b.disabled) return;
+      var p = Number(b.dataset.p);
+      if (!p) return;
+      nState.page = p;
+      nRender();
+    });
+    var dates = NOTICES.map(function (r) { return r[0]; }).filter(Boolean).sort();
+    $('noticeNote').textContent = '共 ' + num(NOTICES.length) + ' 条 · 证监会「债券监管」主题 · 最早 ' +
+      (dates[0] || '—');
+    nRender();
+  }
 })();

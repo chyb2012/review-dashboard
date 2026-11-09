@@ -93,17 +93,23 @@
     var wrap = document.getElementById('funnelSteps');
     if (!wrap || !f || !f.bars || !f.bars.length) return;
 
-    var base = f.base || 1;
-    var html = f.bars.map(function (b) {
-      var share = base ? b.count / base * 100 : 0;
-      var width = b.count ? Math.max(share, 1.5) : 0;
+    var bars = f.bars.filter(function (b) { return b.count > 0; });
+    if (!bars.length) {
+      wrap.innerHTML = '<div class="funnel-empty">当前匹配项目中暂无处于审核阶段的记录</div>';
+      return;
+    }
+    var base = f.matched || 1;
+    var html = bars.map(function (b) {
+      var share = b.count / base * 100;
+      var width = Math.max(share, 8);
+      var color = BAR_COLORS[b.key] || '#9A1831';
       var note = b.kind === 'state' ? '当前状态' : '占匹配 ' + (b.rate || 0).toFixed(1) + '%';
       return '<div class="funnel-row' + (b.kind === 'state' ? ' state' : '') + '" data-key="' + b.key +
         '" title="' + b.label + '：' + fmt(b.count) + ' 家">' +
         '<div class="funnel-label">' + b.label + '</div>' +
         '<div class="funnel-track">' +
-          '<div class="funnel-bar" style="width:' + width.toFixed(1) + '%;background:' +
-            (BAR_COLORS[b.key] || '#9A1831') + '"></div>' +
+          '<div class="funnel-bar" style="width:' + width.toFixed(1) +
+            '%;background:linear-gradient(90deg,' + color + ' 0%,' + color + 'C0 100%)"></div>' +
         '</div>' +
         '<div class="funnel-count">' + fmt(b.count) + '</div>' +
         '<div class="funnel-rate muted">' + note + '</div>' +
@@ -113,11 +119,13 @@
 
     var note = document.getElementById('funnelNote2');
     if (note) {
+      var hidden = f.bars.length - bars.length;
       note.innerHTML = '口径：辅导备案为全部公示企业（' + fmt(f.base) + ' 家）；下列阶段按匹配项目当前所处的最新审核阶段互斥计数，' +
         '每个项目只计入一个阶段，各阶段合计等于匹配家数 <b>' + fmt(f.matched) + '</b> 家。' +
         '匹配率 ' + (f.match_rate || 0).toFixed(1) + '%，未匹配 <b>' + fmt(f.unmatched) +
         '</b> 家（多为已上市多年或已终止、当前不在审核库的企业）。' +
-        '第三列为该阶段绝对家数，柱长按“占全部辅导备案企业”比例绘制，第四列为该阶段占匹配项目的比例。';
+        (hidden ? '已隐藏 ' + hidden + ' 个当前无项目的阶段。' : '') +
+        '柱长按占匹配项目比例绘制，第四列为该阶段占匹配项目的比例。';
     }
 
     var head = document.getElementById('funnelNote');
@@ -217,6 +225,10 @@
     region: function (r, n) { return r[5] === n; },
     agency: function (r, n) { return r[2] === n; },
     year: function (r, n) { return String(r[3] || '').slice(0, 4) === String(n); },
+    time: function (r, n) {
+      if (!r[3] || !window.__coachGranKey) return false;
+      return window.__coachGranKey(r[3]) === n;
+    },
     filing: function () { return true; },
     accepted: function (r) { return r[20] === 'accepted'; },
     inquiry: function (r) { return r[20] === 'inquiry'; },
@@ -230,11 +242,12 @@
     terminated: function (r) { return r[20] === 'terminated'; }
   };
   var TITLES = {
-    status: '辅导状态构成', region: '派出机构分布', agency: '辅导机构分布', year: '备案年度'
+    status: '辅导状态构成', region: '派出机构分布', agency: '辅导机构分布',
+    year: '备案年度', time: '辅导备案时间分布'
   };
   var SUBS = {
     status: '按项目当前辅导状态', region: '按派出机构',
-    agency: '按辅导机构', year: '按辅导备案年份'
+    agency: '按辅导机构', year: '按辅导备案年份', time: '按辅导备案日期'
   };
 
   // 供内联图表脚本调用

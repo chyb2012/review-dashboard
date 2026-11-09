@@ -233,6 +233,21 @@ h2 {
   font-size: 12px;
   margin-left: 8px;
 }
+.gran-switch { display: inline-flex; gap: 0; margin-left: 10px; vertical-align: middle; }
+.gran-switch button {
+  border: 1px solid var(--rule);
+  background: var(--bg2);
+  color: var(--muted);
+  font-size: 11px;
+  padding: 2px 9px;
+  cursor: pointer;
+  font-family: var(--font-sans);
+  margin-left: -1px;
+}
+.gran-switch button:first-child { border-radius: 5px 0 0 5px; margin-left: 0; }
+.gran-switch button:last-child { border-radius: 0 5px 5px 0; }
+.gran-switch button:hover { color: var(--accent); border-color: var(--accent); position: relative; z-index: 1; }
+.gran-switch button.on { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; position: relative; z-index: 1; }
 .chart-box { width: 100%; height: 300px; }
 .chart-box.tall { height: 360px; }
 .chart-scroll {
@@ -516,15 +531,20 @@ footer .defs { margin: 0; padding-left: 18px; }
   section { page-break-inside: avoid; }
 }
 
-.funnel-wrap{display:flex;flex-direction:column;gap:9px;padding:6px 0 2px}
-.funnel-row{display:grid;grid-template-columns:116px 1fr 52px 104px;gap:12px;align-items:center}
-.funnel-row.state{border-top:1px dashed #E5E7EB;padding-top:9px;margin-top:2px}
-.funnel-label{font-size:12.5px;font-weight:600;color:#374151}
-.funnel-track{height:22px;background:#F3F4F6;border-radius:5px;overflow:hidden}
-.funnel-bar{height:100%;border-radius:5px;transition:width .4s ease}
-.funnel-count{font-size:13px;font-weight:700;color:#111827;text-align:right;font-variant-numeric:tabular-nums}
+.funnel-wrap{display:flex;flex-direction:column;gap:8px;padding:10px 2px 6px}
+.funnel-row{display:grid;grid-template-columns:110px 1fr 48px 104px;gap:14px;align-items:center;
+  padding:4px 6px;border-radius:8px;cursor:pointer;transition:background .15s}
+.funnel-row:hover{background:#F8F9FB}
+.funnel-row.state{border-top:1px dashed #E5E7EB;margin-top:4px;padding-top:12px}
+.funnel-label{font-size:13px;font-weight:600;color:#374151}
+.funnel-track{height:28px;background:#F4F5F7;border-radius:8px;overflow:hidden;
+  box-shadow:inset 0 0 0 1px rgba(17,24,39,.03)}
+.funnel-bar{height:100%;border-radius:8px;transition:width .45s cubic-bezier(.4,0,.2,1);
+  box-shadow:inset 0 -2px 4px rgba(0,0,0,.06)}
+.funnel-count{font-size:16px;font-weight:700;color:#111827;text-align:right;font-variant-numeric:tabular-nums}
 .funnel-rate{font-size:13px;color:#111827;text-align:right;font-variant-numeric:tabular-nums}
 .funnel-rate.muted{color:#6B7280;font-size:12px}
+.funnel-empty{padding:28px 8px;text-align:center;color:#6B7280;font-size:13px}
 .funnel-note{margin-top:10px;font-size:12px;color:#6B7280;line-height:1.7}
 @media(max-width:720px){
   .funnel-row{grid-template-columns:96px 1fr 46px;gap:8px}
@@ -651,7 +671,7 @@ footer .defs { margin: 0; padding-left: 18px; }
       </div>
       <div class="card">
         <figure class="chart-figure">
-          <figcaption>辅导备案年度分布<span>单位：个 · 按备案时间年份</span></figcaption>
+          <figcaption>辅导备案时间分布<span>单位：个 · 按备案日期</span><span class="gran-switch" id="granSwitch"><button type="button" data-gran="day">日</button><button type="button" data-gran="week">周</button><button type="button" data-gran="month">月</button><button type="button" data-gran="quarter">季</button><button type="button" data-gran="year" class="on">年</button></span></figcaption>
           <div id="chart-year" class="chart-box tall"></div>
         </figure>
       </div>
@@ -731,7 +751,7 @@ footer .defs { margin: 0; padding-left: 18px; }
 
 </main>
 
-<script src="assets/data.js?v=20261109102837"></script>
+<script src="assets/data.js?v=20261109112442"></script>
 <script>
 
 /*
@@ -962,76 +982,152 @@ var Fr={},Gr={};var Wr,Hr=function(){function t(t,e,n){var i=this;this._sleepAft
     if (p && p.name && window.__coachOpen) window.__coachOpen('agency', p.name);
   });
 
-  // ---------- 备案年度 ----------
+  // ---------- 备案时间分布（年/季/月/周/日） ----------
   function mixHex(a, b, t) {
     var pa = [parseInt(a.slice(1, 3), 16), parseInt(a.slice(3, 5), 16), parseInt(a.slice(5, 7), 16)];
     var pb = [parseInt(b.slice(1, 3), 16), parseInt(b.slice(3, 5), 16), parseInt(b.slice(5, 7), 16)];
     var c = pa.map(function (v, i) { return Math.round(v + (pb[i] - v) * t); });
     return '#' + c.map(function (v) { return ('0' + v.toString(16)).slice(-2); }).join('');
   }
-  var years = [];
-  DATA.forEach(function (r) {
-    var y = Number(String(r[3]).slice(0, 4));
-    if (y) years.push(y);
-  });
-  var minY = Math.min.apply(null, years);
-  var maxY = Math.max.apply(null, years);
-  var yearLabels = [];
-  var yearValues = [];
-  for (var y = minY; y <= maxY; y++) {
-    var n = 0;
-    DATA.forEach(function (r) { if (Number(String(r[3]).slice(0, 4)) === y) n++; });
-    yearLabels.push(String(y));
-    yearValues.push(n);
+  function pad2(n) { return (n < 10 ? '0' : '') + n; }
+  function weekStart(d) {
+    var t = new Date(d + 'T00:00:00');
+    var dow = (t.getDay() + 6) % 7;
+    t.setDate(t.getDate() - dow);
+    return t.getFullYear() + '-' + pad2(t.getMonth() + 1) + '-' + pad2(t.getDate());
   }
-  var yearChart = echarts.init(document.getElementById('chart-year'), null, { renderer: 'svg' });
-  yearChart.setOption({
-    animation: false,
-    textStyle: baseTextStyle,
-    grid: { left: 44, right: 16, top: 22, bottom: 40 },
-    tooltip: { trigger: 'axis', appendToBody: true, formatter: '{b} 年<br/>{c} 个' },
-    xAxis: {
-      type: 'category',
-      data: yearLabels,
-      axisLabel: { color: muted, fontSize: 10, rotate: 45, fontFamily: "'Work Sans'" },
-      axisLine: { lineStyle: { color: rule } },
-      axisTick: { show: false }
-    },
-    yAxis: {
-      type: 'value',
-      splitLine: { lineStyle: { color: rule } },
-      axisLabel: { color: muted, fontSize: 10 },
-      axisLine: { show: false },
-      axisTick: { show: false }
-    },
-    series: [{
-      type: 'bar',
-      data: yearValues,
-      barWidth: '62%',
-      itemStyle: {
-        color: function (p) {
-          var i = yearLabels.indexOf(p.name);
-          var base = i < 0 ? accent
-            : (i === yearLabels.length - 1 ? '#D97706'
-              : mixHex(accent, amber, yearLabels.length > 1 ? i / (yearLabels.length - 1) : 1));
-          return new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-            { offset: 0, color: base },
-            { offset: 1, color: mixHex(base, '#FFFFFF', 0.32) }
-          ]);
-        },
-        borderRadius: [4, 4, 0, 0]
-      },
-      label: {
-        show: true,
-        position: 'top',
-        color: muted,
-        fontSize: 9,
-        fontFamily: "'Work Sans'"
+  function periodKey(d, gran) {
+    var y = d.slice(0, 4), m = d.slice(5, 7);
+    if (gran === 'year') return y;
+    if (gran === 'quarter') return y + '-Q' + (Math.floor((Number(m) - 1) / 3) + 1);
+    if (gran === 'month') return y + '-' + m;
+    if (gran === 'week') return weekStart(d);
+    return d;
+  }
+  function fillRange(gran, labels) {
+    if (!labels.length) return labels;
+    var out = [];
+    var first = labels[0], last = labels[labels.length - 1];
+    if (gran === 'year') {
+      for (var y0 = Number(first); y0 <= Number(last); y0++) out.push(String(y0));
+    } else if (gran === 'quarter') {
+      var sy = Number(first.slice(0, 4)), sq = Number(first.slice(6));
+      var ey = Number(last.slice(0, 4)), eq = Number(last.slice(6));
+      var cy = sy, cq = sq;
+      while (cy < ey || (cy === ey && cq <= eq)) {
+        out.push(cy + '-Q' + cq);
+        cq += 1;
+        if (cq > 4) { cq = 1; cy += 1; }
       }
-    }]
-  });
+    } else {
+      var my = Number(first.slice(0, 4)), mm0 = Number(first.slice(5, 7));
+      var ny = Number(last.slice(0, 4)), nm = Number(last.slice(5, 7));
+      var yy = my, mm = mm0;
+      while (yy < ny || (yy === ny && mm <= nm)) {
+        out.push(yy + '-' + pad2(mm));
+        mm += 1;
+        if (mm > 12) { mm = 1; yy += 1; }
+      }
+    }
+    return out;
+  }
+  function buildBuckets(gran) {
+    var map = {};
+    DATA.forEach(function (r) {
+      var d = String(r[3] || '');
+      if (d.length < 10) return;
+      var k = periodKey(d, gran);
+      map[k] = (map[k] || 0) + 1;
+    });
+    var labels = Object.keys(map).sort();
+    if (gran === 'year' || gran === 'quarter' || gran === 'month') labels = fillRange(gran, labels);
+    return { labels: labels, values: labels.map(function (k) { return map[k] || 0; }) };
+  }
+  function shortLabel(v, gran) {
+    if (gran === 'year') return v;
+    if (gran === 'quarter') return v.replace('-Q', 'Q');
+    return v.slice(2);
+  }
+
+  var yearChart = echarts.init(document.getElementById('chart-year'), null, { renderer: 'svg' });
+  var currentGran = 'year';
+
+  function renderTimeChart(gran) {
+    currentGran = gran;
+    window.__coachGranKey = function (d) { return periodKey(String(d || ''), gran); };
+    var b = buildBuckets(gran);
+    var labels = b.labels;
+    var zoom = labels.length > 40;
+    yearChart.setOption({
+      animation: false,
+      textStyle: baseTextStyle,
+      grid: { left: 44, right: 16, top: 22, bottom: zoom ? 58 : 40 },
+      tooltip: {
+        trigger: 'axis',
+        appendToBody: true,
+        formatter: function (p) { return p[0].name + '：' + p[0].value + ' 个'; }
+      },
+      dataZoom: zoom ? [
+        { type: 'inside', start: labels.length > 120 ? 60 : 0, end: 100 },
+        { type: 'slider', height: 14, bottom: 8, borderColor: '#E5E7EB',
+          fillerColor: 'rgba(154,24,31,.08)', handleSize: 12, showDetail: false }
+      ] : [],
+      xAxis: {
+        type: 'category',
+        data: labels,
+        axisLabel: {
+          color: muted, fontSize: 10, rotate: 45, hideOverlap: true,
+          fontFamily: "'Work Sans'",
+          formatter: function (v) { return shortLabel(v, gran); }
+        },
+        axisLine: { lineStyle: { color: rule } },
+        axisTick: { show: false }
+      },
+      yAxis: {
+        type: 'value',
+        splitLine: { lineStyle: { color: rule } },
+        axisLabel: { color: muted, fontSize: 10 },
+        axisLine: { show: false },
+        axisTick: { show: false }
+      },
+      series: [{
+        type: 'bar',
+        data: b.values,
+        barWidth: '62%',
+        itemStyle: {
+          color: function (p) {
+            var i = p.dataIndex;
+            var base = i === labels.length - 1 ? '#D97706'
+              : mixHex(accent, amber, labels.length > 1 ? i / (labels.length - 1) : 1);
+            return new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+              { offset: 0, color: base },
+              { offset: 1, color: mixHex(base, '#FFFFFF', 0.32) }
+            ]);
+          },
+          borderRadius: [4, 4, 0, 0]
+        },
+        label: {
+          show: labels.length <= 26,
+          position: 'top', color: muted, fontSize: 9, fontFamily: "'Work Sans'"
+        }
+      }]
+    }, true);
+  }
+
+  var granSwitch = document.getElementById('granSwitch');
+  if (granSwitch) {
+    granSwitch.addEventListener('click', function (e) {
+      var btn = e.target.closest('button[data-gran]');
+      if (!btn) return;
+      Array.prototype.forEach.call(granSwitch.querySelectorAll('button'), function (b) {
+        b.classList.toggle('on', b === btn);
+      });
+      renderTimeChart(btn.dataset.gran);
+    });
+  }
+  renderTimeChart(currentGran);
   yearChart.on('click', function (p) {
-    if (p && p.name && window.__coachOpen) window.__coachOpen('year', p.name);
+    if (p && p.name && window.__coachOpen) window.__coachOpen('time', p.name);
   });
 
   window.addEventListener('resize', function () {
@@ -1213,6 +1309,6 @@ var Fr={},Gr={};var Wr,Hr=function(){function t(t,e,n){var i=this;this._sleepAft
     <div class="modal-body" id="coachModalBody"></div>
   </div>
 </div>
-<script src="assets/funnel.js?v=20261109102837"></script>
+<script src="assets/funnel.js?v=20261109112442"></script>
 </body>
 </html>

@@ -19,51 +19,138 @@
   var MARKET_COLOR = { SSE: '#9A1831', SZSE: '#2563EB', BSE: '#059669' };
   var TYPE_COLOR = ['#9A1831', '#2563EB', '#059669', '#D97706', '#7C3AED', '#0891B2', '#9CA3AF'];
 
-  function esc(s) {
-    return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-  }
-
-  /* ---------- KPI ---------- */
-  var counts = {};
-  var total = DATA.length;
-  var latest = '';
-  var markets = {};
-  DATA.forEach(function (r) {
-    counts[r[6]] = (counts[r[6]] || 0) + 1;
-    markets[r[1]] = (markets[r[1]] || 0) + 1;
-    if (r[10] && r[10] > latest) latest = r[10];
-  });
-  var review = (counts.ACCEPTED || 0) + (counts.REVIEWING || 0);
-  var pct = function (v) { return total ? (v / total * 100).toFixed(1) + '%' : '0%'; };
-
-  $('kTotal').textContent = num(total);
-  $('kTotalSub').textContent = '亿元规模 ' + num(Math.round(DATA.reduce(function (a, r) { return a + (r[5] || 0); }, 0))) + ' 亿';
-  $('kReview').textContent = num(review);
-  $('kReviewSub').textContent = '占 ' + pct(review);
-  $('kPassed').textContent = num(counts.PASSED || 0);
-  $('kPassedSub').textContent = '占 ' + pct(counts.PASSED || 0);
-  $('kSubmit').textContent = num(counts.PENDING_REG || 0);
-  $('kSubmitSub').textContent = '占 ' + pct(counts.PENDING_REG || 0);
-  $('kReg').textContent = num(counts.REGISTERED || 0);
-  $('kRegSub').textContent = '占 ' + pct(counts.REGISTERED || 0);
-  $('kTerm').textContent = num(counts.TERMINATED || 0);
-  $('kTermSub').textContent = '占 ' + pct(counts.TERMINATED || 0);
-  $('stampDate').textContent = latest || '—';
-  $('stampScope').textContent = Object.keys(markets).map(function (k) { return MARKET[k] || k; }).join(' · ');
-  $('ovNote').textContent = '全量 ' + num(total) + ' 个项目 · 以各交易所公示的最新状态统计';
-
-  /* ---------- 图表 ---------- */
   var axis = {
     axisLabel: { color: '#6B7280', fontSize: 10 },
     axisLine: { lineStyle: { color: '#E5E7EB' } },
     axisTick: { show: false }
   };
 
-  function pie(id, rows, colorFn) {
+  function esc(s) {
+    return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+  function pad2(n) { return (n < 10 ? '0' : '') + n; }
+  function ymd(d) {
+    return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate());
+  }
+  function parseDay(s) {
+    var p = String(s || '').split('-');
+    return p.length === 3 ? new Date(+p[0], +p[1] - 1, +p[2]) : null;
+  }
+  function weekStart(d) {
+    var t = new Date(d.getTime());
+    t.setDate(t.getDate() - ((t.getDay() + 6) % 7));
+    return t;
+  }
+  function weekKey(s) {
+    var d = parseDay(s);
+    if (!d) return '';
+    var ws = weekStart(d);
+    // ISO 周：以该周周四所在年份为周年
+    var thu = new Date(ws.getTime() + 3 * 864e5);
+    var jan1 = new Date(thu.getFullYear(), 0, 1);
+    var week = Math.floor((thu - jan1) / 864e5 / 7) + 1;
+    return thu.getFullYear() + '-W' + pad2(week);
+  }
+  function tickOf(s, gran) {
+    if (!s) return '';
+    if (gran === 'day') return s;
+    if (gran === 'week') {
+      var d = parseDay(s);
+      return d ? ymd(weekStart(d)) : '';
+    }
+    return s.slice(0, 7);
+  }
+  function shortTick(v, gran) {
+    if (!v) return v;
+    if (gran === 'month') return v.slice(2);
+    return v.slice(5);
+  }
+
+  /* ---------- 筛选状态 ---------- */
+  var state = {
+    q: '', market: '', type: '', status: '',
+    gran: '', period: '',
+    page: 1, per: 20
+  };
+  var trendGran = 'month';
+
+  function timeFilter(r) {
+    if (!state.gran || !state.period) return true;
+    var d = r[9] || '';
+    if (!d) return false;
+    if (state.gran === 'day') return d === state.period;
+    if (state.gran === 'week') return weekKey(d) === state.period;
+    return d.slice(0, 7) === state.period;
+  }
+
+  function baseRows() {
+    return DATA.filter(function (r) {
+      if (state.market && r[1] !== state.market) return false;
+      if (state.type && r[2] !== state.type) return false;
+      if (state.status && r[6] !== state.status) return false;
+      if (!timeFilter(r)) return false;
+      var q = state.q.trim().toLowerCase();
+      if (q && (r[3] + ' ' + r[4] + ' ' + r[8]).toLowerCase().indexOf(q) === -1) return false;
+      return true;
+    });
+  }
+
+  /* ---------- KPI ---------- */
+  function renderKpi(rows) {
+    var counts = {};
+    var markets = {};
+    var scale = 0;
+    var latest = '';
+    rows.forEach(function (r) {
+      counts[r[6]] = (counts[r[6]] || 0) + 1;
+      markets[r[1]] = (markets[r[1]] || 0) + 1;
+      scale += r[5] || 0;
+      if (r[10] && r[10] > latest) latest = r[10];
+    });
+    var total = rows.length;
+    var review = (counts.ACCEPTED || 0) + (counts.REVIEWING || 0);
+    var pct = function (v) { return total ? (v / total * 100).toFixed(1) + '%' : '0%'; };
+
+    $('kTotal').textContent = num(total);
+    $('kTotalSub').textContent = '亿元规模 ' + num(Math.round(scale)) + ' 亿';
+    $('kReview').textContent = num(review);
+    $('kReviewSub').textContent = '占 ' + pct(review);
+    $('kPassed').textContent = num(counts.PASSED || 0);
+    $('kPassedSub').textContent = '占 ' + pct(counts.PASSED || 0);
+    $('kSubmit').textContent = num(counts.PENDING_REG || 0);
+    $('kSubmitSub').textContent = '占 ' + pct(counts.PENDING_REG || 0);
+    $('kReg').textContent = num(counts.REGISTERED || 0);
+    $('kRegSub').textContent = '占 ' + pct(counts.REGISTERED || 0);
+    $('kTerm').textContent = num(counts.TERMINATED || 0);
+    $('kTermSub').textContent = '占 ' + pct(counts.TERMINATED || 0);
+
+    $('stampDate').textContent = latest || '—';
+    $('stampScope').textContent = Object.keys(markets).map(function (k) { return MARKET[k] || k; }).join(' · ') || '—';
+    $('ovNote').textContent = (state.gran ? '当前筛选 ' : '全量 ') + num(total) +
+      ' 个项目 · 以各交易所公示的最新状态统计';
+  }
+
+  /* ---------- 图表 ---------- */
+  var charts = {};
+
+  function initChart(id) {
     var el = $(id);
-    if (!el) return;
-    var chart = echarts.init(el, null, { renderer: 'svg' });
+    if (!el) return null;
+    if (!charts[id]) charts[id] = echarts.init(el, null, { renderer: 'svg' });
+    return charts[id];
+  }
+
+  function rankBy(rows, idx) {
+    var m = {};
+    rows.forEach(function (r) { var k = r[idx]; if (k) m[k] = (m[k] || 0) + 1; });
+    return Object.keys(m).map(function (k) { return { name: k, value: m[k] }; })
+      .sort(function (a, b) { return b.value - a.value; });
+  }
+
+  function drawPie(id, rows, colorFn) {
+    var chart = initChart(id);
+    if (!chart) return;
     chart.setOption({
       animation: false,
       textStyle: { fontSize: 11, color: '#6B7280' },
@@ -73,33 +160,21 @@
         type: 'pie', radius: ['48%', '70%'], center: ['50%', '44%'],
         itemStyle: { borderColor: '#fff', borderWidth: 2, borderRadius: 4 },
         label: { show: false }, labelLine: { show: false },
-        data: rows.map(function (x, i) {
+        data: rows.length ? rows.map(function (x, i) {
           return { name: x.name, value: x.value, itemStyle: { color: colorFn(x, i) } };
-        })
+        }) : [{ name: '暂无数据', value: 1, itemStyle: { color: '#EEF0F3' } }]
       }]
-    });
-    window.addEventListener('resize', function () { chart.resize(); });
+    }, true);
   }
 
-  function rankBy(idx) {
-    var m = {};
-    DATA.forEach(function (r) { var k = r[idx]; if (k) m[k] = (m[k] || 0) + 1; });
-    return Object.keys(m).map(function (k) { return { name: k, value: m[k] }; })
-      .sort(function (a, b) { return b.value - a.value; });
-  }
-
-  pie('chartMarket', rankBy(1).map(function (x) { return { name: MARKET[x.name] || x.name, value: x.value, key: x.name }; }),
-    function (x) { return MARKET_COLOR[x.key || ''] || '#9CA3AF'; });
-  pie('chartType', rankBy(2), function (x, i) { return TYPE_COLOR[i % TYPE_COLOR.length]; });
-
-  // 审核状态横向条
-  var stRows = rankBy(6).filter(function (x) { return x.name !== 'OTHER' || x.value; });
-  var stEl = $('chartStatus');
-  if (stEl) {
-    var stChart = echarts.init(stEl, null, { renderer: 'svg' });
-    var stMax = Math.max.apply(null, stRows.map(function (x) { return x.value; }).concat([1]));
-    stEl.style.height = Math.max(260, stRows.length * 34 + 40) + 'px';
-    stChart.setOption({
+  function drawStatus(rows) {
+    var chart = initChart('chartStatus');
+    if (!chart) return;
+    var stRows = rankBy(rows, 6);
+    var el = $('chartStatus');
+    el.style.height = Math.max(260, stRows.length * 34 + 40) + 'px';
+    chart.resize();
+    chart.setOption({
       animation: false,
       textStyle: { fontSize: 11, color: '#6B7280' },
       grid: { left: 92, right: 56, top: 8, bottom: 20 },
@@ -114,78 +189,83 @@
         showBackground: true, backgroundStyle: { color: '#F4F5F7', borderRadius: 3 },
         itemStyle: {
           borderRadius: 3,
-          color: function (p) {
-            var name = stRows[p.dataIndex].name;
-            return STATUS_COLOR[name] || '#9CA3AF';
-          }
+          color: function (p) { return STATUS_COLOR[stRows[p.dataIndex].name] || '#9CA3AF'; }
         },
         label: { show: true, position: 'right', color: '#111827', fontSize: 10, fontWeight: 600 }
       }]
-    });
-    window.addEventListener('resize', function () { stChart.resize(); });
+    }, true);
   }
 
-  // 近 36 个月受理趋势
-  var trendEl = $('chartTrend');
-  if (trendEl) {
-    var monthCount = {};
-    DATA.forEach(function (r) {
-      var d = r[9] || '';
-      if (d.length >= 7) monthCount[d.slice(0, 7)] = (monthCount[d.slice(0, 7)] || 0) + 1;
+  function drawTrend(rows) {
+    var chart = initChart('chartTrend');
+    if (!chart) return;
+    var count = {};
+    rows.forEach(function (r) {
+      var k = tickOf(r[9], trendGran);
+      if (k) count[k] = (count[k] || 0) + 1;
     });
-    var months = Object.keys(monthCount).sort().slice(-36);
-    var trChart = echarts.init(trendEl, null, { renderer: 'svg' });
-    trChart.setOption({
+    var ticks = Object.keys(count).sort();
+    if (trendGran === 'month' && ticks.length > 36) ticks = ticks.slice(-36);
+    var zoom = ticks.length > 40;
+    chart.setOption({
       animation: false,
       textStyle: { fontSize: 11, color: '#6B7280' },
-      grid: { left: 40, right: 14, top: 22, bottom: 46 },
+      grid: { left: 40, right: 14, top: 22, bottom: zoom ? 58 : 46 },
       tooltip: { trigger: 'axis', appendToBody: true, formatter: '{b}<br/>{c} 个' },
-      xAxis: { type: 'category', data: months, axisLabel: { color: '#6B7280', fontSize: 9, rotate: 45 }, axisLine: axis.axisLine, axisTick: { show: false } },
+      dataZoom: zoom ? [
+        { type: 'inside', start: ticks.length > 120 ? 70 : 0, end: 100 },
+        { type: 'slider', height: 14, bottom: 8, borderColor: '#E5E7EB',
+          fillerColor: 'rgba(154,24,31,.08)', handleSize: 12, showDetail: false }
+      ] : [],
+      xAxis: {
+        type: 'category', data: ticks,
+        axisLabel: {
+          color: '#6B7280', fontSize: 9, rotate: 45, hideOverlap: true,
+          formatter: function (v) { return shortTick(v, trendGran); }
+        },
+        axisLine: axis.axisLine, axisTick: { show: false }
+      },
       yAxis: { type: 'value', splitLine: { lineStyle: { color: '#F0F1F3' } }, axisLabel: axis.axisLabel, axisLine: { show: false }, axisTick: { show: false } },
       series: [{
-        type: 'bar', data: months.map(function (m) { return monthCount[m]; }), barWidth: '60%',
+        type: 'bar', data: ticks.map(function (m) { return count[m]; }), barWidth: '62%',
         itemStyle: {
           borderRadius: [3, 3, 0, 0],
           color: function (p) {
-            var t = months.length > 1 ? p.dataIndex / (months.length - 1) : 1;
-            return p.dataIndex === months.length - 1 ? '#D97706' : (t > 0.5 ? '#B32B4A' : '#9A1831');
+            var t = ticks.length > 1 ? p.dataIndex / (ticks.length - 1) : 1;
+            return p.dataIndex === ticks.length - 1 ? '#D97706' : (t > 0.5 ? '#B32B4A' : '#9A1831');
           }
         }
       }]
-    });
-    window.addEventListener('resize', function () { trChart.resize(); });
+    }, true);
   }
 
-  /* ---------- 表格 ---------- */
-  var state = { q: '', market: '', type: '', status: '', page: 1, per: 20 };
-  var typeVals = {}, statusVals = {};
-  DATA.forEach(function (r) {
-    if (r[2]) typeVals[r[2]] = 1;
-    if (r[6]) statusVals[r[6]] = 1;
-  });
-  Object.keys(MARKET).forEach(function (k) { if (markets[k]) $('fMarket').appendChild(opt(k, MARKET[k])); });
-  Object.keys(typeVals).sort().forEach(function (k) { $('fType').appendChild(opt(k, k)); });
-  Object.keys(STATUS).forEach(function (k) {
-    if (statusVals[k]) $('fStatus').appendChild(opt(k, STATUS[k]));
-  });
+  function renderCharts(rows) {
+    drawPie('chartMarket',
+      rankBy(rows, 1).map(function (x) { return { name: MARKET[x.name] || x.name, value: x.value, key: x.name }; }),
+      function (x) { return MARKET_COLOR[x.key || ''] || '#9CA3AF'; });
+    drawPie('chartType', rankBy(rows, 2), function (x, i) { return TYPE_COLOR[i % TYPE_COLOR.length]; });
+    drawStatus(rows);
+    drawTrend(rows);
+  }
+
+  /* ---------- 明细表 ---------- */
   function opt(v, t) { var o = document.createElement('option'); o.value = v; o.textContent = t; return o; }
 
-  function filtered() {
-    var q = state.q.trim().toLowerCase();
-    return DATA.filter(function (r) {
-      if (state.market && r[1] !== state.market) return false;
-      if (state.type && r[2] !== state.type) return false;
-      if (state.status && r[6] !== state.status) return false;
-      if (q) {
-        var hay = (r[3] + ' ' + r[4] + ' ' + r[8]).toLowerCase();
-        if (hay.indexOf(q) === -1) return false;
-      }
-      return true;
+  function initSelects() {
+    var typeVals = {}, statusVals = {}, marketVals = {};
+    DATA.forEach(function (r) {
+      if (r[2]) typeVals[r[2]] = 1;
+      if (r[6]) statusVals[r[6]] = 1;
+      if (r[1]) marketVals[r[1]] = 1;
+    });
+    Object.keys(MARKET).forEach(function (k) { if (marketVals[k]) $('fMarket').appendChild(opt(k, MARKET[k])); });
+    Object.keys(typeVals).sort().forEach(function (k) { $('fType').appendChild(opt(k, k)); });
+    Object.keys(STATUS).forEach(function (k) {
+      if (statusVals[k]) $('fStatus').appendChild(opt(k, STATUS[k]));
     });
   }
 
-  function render() {
-    var rows = filtered();
+  function renderTable(rows) {
     var totalRows = rows.length;
     var pages = Math.max(1, Math.ceil(totalRows / state.per));
     if (state.page > pages) state.page = pages;
@@ -221,26 +301,93 @@
     $('pager').innerHTML = btns.join('');
   }
 
-  var timer;
-  $('q').addEventListener('input', function (e) {
-    clearTimeout(timer);
-    var v = e.target.value;
-    timer = setTimeout(function () { state.q = v; state.page = 1; render(); }, 160);
-  });
-  $('fMarket').addEventListener('change', function (e) { state.market = e.target.value; state.page = 1; render(); });
-  $('fType').addEventListener('change', function (e) { state.type = e.target.value; state.page = 1; render(); });
-  $('fStatus').addEventListener('change', function (e) { state.status = e.target.value; state.page = 1; render(); });
-  $('pager').addEventListener('click', function (e) {
-    var b = e.target.closest('button');
-    if (!b || b.disabled) return;
-    var p = Number(b.dataset.p);
-    if (!p) return;
-    state.page = p;
-    render();
-    document.querySelector('.table-wrap').scrollTop = 0;
-  });
+  function renderAll() {
+    var rows = baseRows();
+    renderKpi(rows);
+    renderCharts(rows);
+    renderTable(rows);
+  }
 
-  render();
+  /* ---------- 时间筛选控件 ---------- */
+  function syncPeriodInput() {
+    var el = $('fPeriod');
+    var g = state.gran;
+    if (!g) {
+      el.value = '';
+      el.disabled = true;
+      el.removeAttribute('min');
+      el.removeAttribute('max');
+      state.period = '';
+      return;
+    }
+    el.disabled = false;
+    // 切换 input type 前清掉旧格式的 min/max，避免浏览器忽略或误判区间
+    el.removeAttribute('min');
+    el.removeAttribute('max');
+    el.type = g === 'day' ? 'date' : (g === 'week' ? 'week' : 'month');
+    var days = DATA.map(function (r) { return r[9]; }).filter(function (d) { return d && d.length === 10; }).sort();
+    if (!el.value) {
+      var last = days[days.length - 1] || '';
+      el.value = g === 'month' ? last.slice(0, 7) : (g === 'week' ? weekKey(last) : last);
+    }
+    if (g === 'month' && days.length) {
+      el.min = days[0].slice(0, 7);
+      el.max = days[days.length - 1].slice(0, 7);
+    }
+    state.period = el.value;
+  }
+
+  function bind() {
+    var timer;
+    $('q').addEventListener('input', function (e) {
+      clearTimeout(timer);
+      var v = e.target.value;
+      timer = setTimeout(function () { state.q = v; state.page = 1; renderAll(); }, 160);
+    });
+    $('fMarket').addEventListener('change', function (e) { state.market = e.target.value; state.page = 1; renderAll(); });
+    $('fType').addEventListener('change', function (e) { state.type = e.target.value; state.page = 1; renderAll(); });
+    $('fStatus').addEventListener('change', function (e) { state.status = e.target.value; state.page = 1; renderAll(); });
+    $('fGran').addEventListener('change', function (e) {
+      state.gran = e.target.value;
+      state.page = 1;
+      syncPeriodInput();
+      renderAll();
+    });
+    $('fPeriod').addEventListener('change', function (e) {
+      state.period = e.target.value;
+      state.page = 1;
+      renderAll();
+    });
+    $('pager').addEventListener('click', function (e) {
+      var b = e.target.closest('button');
+      if (!b || b.disabled) return;
+      var p = Number(b.dataset.p);
+      if (!p) return;
+      state.page = p;
+      renderTable(baseRows());
+      document.querySelector('.table-wrap').scrollTop = 0;
+    });
+    var tg = $('trendGran');
+    if (tg) {
+      tg.addEventListener('click', function (e) {
+        var b = e.target.closest('button[data-gran]');
+        if (!b) return;
+        Array.prototype.forEach.call(tg.querySelectorAll('button'), function (x) {
+          x.classList.toggle('on', x === b);
+        });
+        trendGran = b.dataset.gran;
+        drawTrend(baseRows());
+      });
+    }
+  }
+
+  initSelects();
+  bind();
+  renderAll();
+
+  window.addEventListener('resize', function () {
+    Object.keys(charts).forEach(function (k) { charts[k].resize(); });
+  });
 
   /* ---------- 证监会每周受理申请 ---------- */
   var APPLY = window.__BOND_APPLY__ || [];
@@ -262,6 +409,7 @@
     $('applyNote').textContent = '共 ' + num(APPLY.length) + ' 家 · ' +
       Object.keys(snaps).length + ' 期公示（截至 ' + (Object.keys(snaps).sort().pop() || '—') + '）';
   }
+
   /* ---------- 证监会债券注册批复与审核公告 ---------- */
   var NOTICES = window.__BOND_NOTICES__ || [];
   var KIND = { reg: '注册批复', process: '审核流程', notice: '其他公告' };

@@ -43,6 +43,14 @@ input[type=search]:focus{border-color:#9A1831}
 select{padding:9px 12px;border:1px solid #E5E7EB;border-radius:5px;font-size:13px;background:#fff;color:#111827;outline:none;max-width:190px}
 .result-count{margin-left:auto;font-size:12px;color:#6B7280;align-self:center}
 .result-count b{color:#111827;font-size:14px}
+.gran-switch{display:inline-flex;margin-left:10px;vertical-align:middle}
+.gran-switch button{border:1px solid #E5E7EB;background:#fff;color:#6B7280;font-size:11px;
+  padding:1px 8px;cursor:pointer;margin-left:-1px}
+.gran-switch button:first-child{border-radius:4px 0 0 4px;margin-left:0}
+.gran-switch button:last-child{border-radius:0 4px 4px 0}
+.gran-switch button:hover{color:#9A1831;border-color:#9A1831;position:relative;z-index:1}
+.gran-switch button.on{background:#9A1831;border-color:#9A1831;color:#fff;font-weight:600;position:relative;z-index:1}
+input[type=date]:disabled,input[type=week]:disabled,input[type=month]:disabled{opacity:.5;cursor:not-allowed}
 .table-wrap{max-height:680px;overflow:auto;border:1px solid #E5E7EB;border-radius:6px;background:#fff}
 table{width:100%;border-collapse:collapse;font-size:12.5px}
 thead th{position:sticky;top:0;z-index:2;background:#9A1831;color:#fff;text-align:left;padding:10px;font-size:12px;white-space:nowrap}
@@ -99,22 +107,29 @@ footer a{color:#9A1831;text-decoration:none;word-break:break-all}
   </section>
 
   <section>
-    <div class="sec-head"><h2>结构分布</h2><span class="sec-note">基于全量项目</span></div>
+    <div class="sec-head"><h2>结构分布</h2><span class="sec-note">随下方筛选联动</span></div>
     <div class="chart-grid">
       <div class="card"><figure style="margin:0"><figcaption>市场分布<span>单位：个</span></figcaption><div id="chartMarket" class="chart-box"></div></figure></div>
       <div class="card"><figure style="margin:0"><figcaption>债券类型分布<span>单位：个</span></figcaption><div id="chartType" class="chart-box"></div></figure></div>
       <div class="card"><figure style="margin:0"><figcaption>审核状态分布<span>单位：个</span></figcaption><div id="chartStatus" class="chart-box"></div></figure></div>
-      <div class="card"><figure style="margin:0"><figcaption>受理月度趋势<span>单位：个 · 近 36 个月</span></figcaption><div id="chartTrend" class="chart-box"></div></figure></div>
+      <div class="card"><figure style="margin:0"><figcaption>受理趋势<span>单位：个 · 按受理日期</span><span class="gran-switch" id="trendGran"><button type="button" data-gran="day">日</button><button type="button" data-gran="week">周</button><button type="button" data-gran="month" class="on">月</button></span></figcaption><div id="chartTrend" class="chart-box"></div></figure></div>
     </div>
   </section>
 
   <section>
-    <div class="sec-head"><h2>债券项目明细</h2><span class="sec-note">按更新日期倒序；可按市场、类型、状态筛选</span></div>
+    <div class="sec-head"><h2>债券项目明细</h2><span class="sec-note">按更新日期倒序；可按市场、类型、状态及受理日期的日/周/月筛选</span></div>
     <div class="toolbar">
       <input id="q" type="search" placeholder="搜索债券名称、发行人、承销商…" autocomplete="off">
       <select id="fMarket"><option value="">全部市场</option></select>
       <select id="fType"><option value="">全部类型</option></select>
       <select id="fStatus"><option value="">全部状态</option></select>
+      <select id="fGran">
+        <option value="">全部时间</option>
+        <option value="day">按日</option>
+        <option value="week">按周</option>
+        <option value="month">按月</option>
+      </select>
+      <input id="fPeriod" type="date" disabled>
       <span class="result-count">共 <b id="cnt">0</b> 个项目</span>
     </div>
     <div class="table-wrap">
@@ -173,7 +188,7 @@ footer a{color:#9A1831;text-decoration:none;word-break:break-all}
 </main>
 
 <script src="./vendor/echarts.min.js"></script>
-<script src="bond-data.js?v=20261109131830"></script>
-<script src="bond.js?v=20261109131830"></script>
+<script src="bond-data.js?v=20261110013252"></script>
+<script src="bond.js?v=20261110013252"></script>
 </body>
 </html>

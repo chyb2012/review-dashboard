@@ -530,6 +530,23 @@
     build($('typeChips'), types, null);
   }
 
+  function syncChips(box, key) {
+    Array.prototype.forEach.call(box.querySelectorAll('.chip'), function (x) {
+      if (!x.dataset.v) {
+        x.classList.toggle('on', picked(state[key]).length === 0);
+      } else {
+        x.classList.toggle('on', !!state[key][x.dataset.v]);
+      }
+    });
+  }
+
+  /* 顶部市场标签与明细区市场下拉共用同一状态 */
+  function syncMarketSelect() {
+    var mk = picked(state.markets);
+    $('fMarket').value = mk.length === 1 ? mk[0] : '';
+    syncChips($('marketChips'), 'markets');
+  }
+
   function toggleChips(box, key) {
     box.addEventListener('click', function (e) {
       var b = e.target.closest('button.chip');
@@ -539,13 +556,8 @@
       } else {
         state[key][b.dataset.v] = !state[key][b.dataset.v];
       }
-      Array.prototype.forEach.call(box.querySelectorAll('.chip'), function (x) {
-        if (!x.dataset.v) {
-          x.classList.toggle('on', picked(state[key]).length === 0);
-        } else {
-          x.classList.toggle('on', !!state[key][x.dataset.v]);
-        }
-      });
+      if (key === 'markets') syncMarketSelect();
+      else syncChips(box, key);
       state.page = 1;
       renderAll();
     });
@@ -607,6 +619,13 @@
       clearTimeout(spTimer);
       var v = e.target.value;
       spTimer = setTimeout(function () { state.sponsor = v; state.page = 1; renderAll(); }, 220);
+    });
+    $('fMarket').addEventListener('change', function (e) {
+      state.markets = {};
+      if (e.target.value) state.markets[e.target.value] = true;
+      syncMarketSelect();
+      state.page = 1;
+      renderAll();
     });
     $('fStatus').addEventListener('change', function (e) { state.status = e.target.value; state.page = 1; renderAll(); });
     $('fPer').addEventListener('change', function (e) {

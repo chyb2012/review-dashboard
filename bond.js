@@ -216,13 +216,13 @@
       .sort(function (a, b) { return b.value - a.value; });
   }
 
-  /* 债券类型统一配色：同一类型在所有图表中颜色一致 */
+  /* 债券类型统一配色：沿用发行审核看板的图表色系 */
   var TYPE_ORDER = ['私募', '公募', '小公募', '大公募', 'ABS', '其他'];
   var TYPE_COLORS = {
-    '私募': '#9A1831', '公募': '#2563EB', '小公募': '#D97706',
-    '大公募': '#7C3AED', 'ABS': '#059669', '其他': '#9CA3AF'
+    '私募': '#3B82F6', '公募': '#F59E0B', '小公募': '#8B5CF6',
+    '大公募': '#EC4899', 'ABS': '#10B981', '其他': '#94A3B8'
   };
-  var TYPE_EXTRA = ['#0891B2', '#DB2777', '#65A30D', '#EA580C'];
+  var TYPE_EXTRA = ['#14B8A6', '#F472B6', '#84CC16', '#FB923C'];
 
   function typeList(rows) {
     var set = {};
@@ -288,7 +288,7 @@
       series: types.map(function (t) {
         return {
           name: t, type: 'bar', stack: 's', barWidth: '54%',
-          itemStyle: { color: typeColor(t, types) },
+          itemStyle: { color: typeColor(t, types), borderColor: '#fff', borderWidth: 1 },
           data: catKeys.map(function (k) { return countFn(k, t); })
         };
       })
@@ -354,7 +354,7 @@
       series: types.map(function (t) {
         return {
           name: t, type: 'bar', stack: 'tr', barWidth: '62%',
-          itemStyle: { color: typeColor(t, types) },
+          itemStyle: { color: typeColor(t, types), borderColor: '#fff', borderWidth: 1 },
           data: ticks.map(function (k) { return (count[k] && count[k][t]) || 0; })
         };
       })

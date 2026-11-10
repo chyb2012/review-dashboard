@@ -8,9 +8,9 @@
 <style>
 *{box-sizing:border-box}
 body{margin:0;background:#F2F4F7;color:#111827;font-family:'Microsoft YaHei','PingFang SC',sans-serif;font-size:14px;line-height:1.6;-webkit-font-smoothing:antialiased}
-.wrap{max-width:1280px;margin:0 auto;padding:0 24px 48px}
+.wrap{max-width:none;margin:0;padding:0 32px 48px}
 .masthead{background:#fff;border-bottom:1px solid #E5E7EB;padding:30px 0 22px;margin-bottom:26px}
-.masthead .inner{max-width:1280px;margin:0 auto;padding:0 24px;display:flex;justify-content:space-between;align-items:flex-end;gap:24px;flex-wrap:wrap}
+.masthead .inner{max-width:none;margin:0;padding:0 32px;display:flex;justify-content:space-between;align-items:flex-end;gap:24px;flex-wrap:wrap}
 .eyebrow{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:#9A1831;font-weight:700;margin:0 0 8px}
 h1{font-size:28px;margin:0 0 6px;font-weight:700}
 .sub{margin:0;color:#6B7280;font-size:13px;max-width:720px}
@@ -56,6 +56,7 @@ table{width:100%;border-collapse:collapse;font-size:12.5px}
 thead th{position:sticky;top:0;z-index:2;background:#9A1831;color:#fff;text-align:left;padding:10px;font-size:12px;white-space:nowrap}
 tbody td{padding:9px 10px;border-bottom:1px solid #E5E7EB;vertical-align:middle}
 tbody tr:hover{background:#F9FAFB}
+tbody tr{cursor:pointer}
 .t-name{max-width:330px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .t-iss{max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#374151}
 .t-link,.t-link a{color:#9A1831;text-decoration:none}
@@ -77,6 +78,41 @@ tbody tr:hover{background:#F9FAFB}
 .pager .info{font-size:12px;color:#6B7280;margin-right:auto}
 footer{border-top:1px solid #E5E7EB;padding-top:16px;font-size:12px;color:#6B7280;line-height:1.8}
 footer a{color:#9A1831;text-decoration:none;word-break:break-all}
+/* ---------- 弹窗与抽屉 ---------- */
+.overlay{position:fixed;inset:0;background:rgba(17,24,39,.32);opacity:0;pointer-events:none;transition:.22s;z-index:50}
+.overlay.on{opacity:1;pointer-events:auto}
+.drawer{position:fixed;top:0;right:0;bottom:0;width:460px;max-width:94vw;background:#fff;border-left:1px solid #E5E7EB;box-shadow:-8px 0 24px rgba(16,24,40,.1);transform:translateX(102%);transition:transform .25s ease;z-index:60;padding:26px 28px 40px;overflow:auto}
+.drawer.open{transform:none}
+.modal{position:fixed;left:50%;top:50%;transform:translate(-50%,-46%) scale(.98);width:min(1180px,94vw);max-height:84vh;background:#fff;border-radius:10px;z-index:70;opacity:0;pointer-events:none;transition:.2s;display:flex;flex-direction:column;box-shadow:0 20px 48px rgba(16,24,40,.2)}
+.modal.on{opacity:1;pointer-events:auto;transform:translate(-50%,-50%) scale(1)}
+.modal-head{padding:18px 24px 12px;border-bottom:1px solid #E5E7EB;position:relative}
+.modal-head h2{font-size:17px;margin:2px 0 4px;border:0;padding:0}
+.modal-head .sub{font-size:12px;color:#6B7280}
+.modal-body{padding:0 24px 20px;overflow:auto;min-height:0}
+.drawer .close,.modal .close{position:absolute;right:16px;top:12px;border:0;background:transparent;font-size:22px;cursor:pointer;color:#9CA3AF;line-height:1;padding:4px}
+.drawer .close:hover,.modal .close:hover{color:#111827}
+.d-hero{border-bottom:1px solid #E5E7EB;padding-bottom:14px;margin-bottom:16px}
+.d-hero h3{font-size:19px;margin:6px 0 8px;line-height:1.35;font-weight:700}
+.d-hero .meta{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.d-hero .hint{font-size:12px;color:#6B7280}
+.d-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px 18px}
+.d-grid .item{border-bottom:1px dotted #E5E7EB;padding-bottom:6px}
+.d-grid .item .k{font-size:11px;color:#9CA3AF;margin-bottom:2px}
+.d-grid .item .v{font-size:12.5px;word-break:break-all}
+.d-sec{font-size:11px;letter-spacing:.12em;color:#9CA3AF;margin:18px 0 8px;text-transform:uppercase}
+.d-link{color:#9A1831;text-decoration:none;word-break:break-all;font-size:12px}
+.d-link:hover{text-decoration:underline}
+.modal-table{width:100%;border-collapse:collapse;font-size:12.5px}
+.modal-table thead th{position:sticky;top:0;z-index:2;background:#F8F9FB;color:#6B7280;font-weight:600;font-size:11px;padding:9px 10px;border-bottom:1px solid #E8EBEF;text-align:left;white-space:nowrap}
+.modal-table td{padding:8px 10px;border-bottom:1px solid #F3F4F6;vertical-align:top}
+.modal-table tbody tr{cursor:pointer}
+.modal-table tbody tr:hover{background:#FBF7F8}
+.modal-table .t-name{max-width:420px}
+.modal-foot{display:flex;justify-content:space-between;align-items:center;padding:12px 0 0;font-size:12px;color:#6B7280;gap:12px;flex-wrap:wrap}
+.modal-foot .btn{border:1px solid #E5E7EB;background:#fff;border-radius:5px;padding:5px 12px;font-size:12px;cursor:pointer;color:#374151}
+.modal-foot .btn:hover:not(:disabled){border-color:#9A1831;color:#9A1831}
+.modal-foot .btn:disabled{opacity:.45;cursor:not-allowed}
+.chart-grid .card{cursor:pointer}
 @media(max-width:980px){.kpi-grid{grid-template-columns:repeat(3,1fr)}.chart-grid{grid-template-columns:1fr}}
 @media(max-width:640px){.kpi-grid{grid-template-columns:repeat(2,1fr)}.masthead .inner{flex-direction:column;align-items:flex-start}}
 </style>
@@ -107,7 +143,7 @@ footer a{color:#9A1831;text-decoration:none;word-break:break-all}
   </section>
 
   <section>
-    <div class="sec-head"><h2>结构分布</h2><span class="sec-note">随下方筛选联动</span></div>
+    <div class="sec-head"><h2>结构分布</h2><span class="sec-note">随下方筛选联动 · 点击图表可查看对应项目明细</span></div>
     <div class="chart-grid">
       <div class="card"><figure style="margin:0"><figcaption>市场分布<span>单位：个</span></figcaption><div id="chartMarket" class="chart-box"></div></figure></div>
       <div class="card"><figure style="margin:0"><figcaption>债券类型分布<span>单位：个</span></figcaption><div id="chartType" class="chart-box"></div></figure></div>
@@ -187,8 +223,23 @@ footer a{color:#9A1831;text-decoration:none;word-break:break-all}
   </footer>
 </main>
 
+<div class="overlay" id="overlay"></div>
+<aside class="drawer" id="drawer">
+  <button class="close" id="drawerClose" aria-label="关闭">×</button>
+  <div id="drawerBody"></div>
+</aside>
+<div class="modal" id="listModal">
+  <div class="modal-head">
+    <div class="eyebrow" id="listEyebrow">项目明细</div>
+    <h2 id="listTitle">—</h2>
+    <div class="sub" id="listSub">—</div>
+    <button class="close" id="listClose" aria-label="关闭">×</button>
+  </div>
+  <div class="modal-body" id="listBody"></div>
+</div>
+
 <script src="./vendor/echarts.min.js"></script>
-<script src="bond-data.js?v=20261110013252"></script>
-<script src="bond.js?v=20261110013252"></script>
+<script src="bond-data.js?v=20261110021433"></script>
+<script src="bond.js?v=20261110021433"></script>
 </body>
 </html>

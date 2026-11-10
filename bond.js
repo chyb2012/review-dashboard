@@ -3,6 +3,8 @@
   'use strict';
 
   var DATA = window.__BOND_DATA__ || [];
+  var BY_ID = {};
+  DATA.forEach(function (r) { BY_ID[r[0]] = r; });
   var $ = function (id) { return document.getElementById(id); };
   var num = function (v) { return Number(v || 0).toLocaleString('zh-CN'); };
 
@@ -138,7 +140,58 @@
     var el = $(id);
     if (!el) return null;
     if (!charts[id]) charts[id] = echarts.init(el, null, { renderer: 'svg' });
+    bindChartHit(id);
     return charts[id];
+  }
+
+  /* ECharts 的 SVG click 在部分环境不响应，改为容器级原生 click 定位 */
+  function bindChartHit(id) {
+    var el = $(id);
+    if (!el || el.__hitBound) return;
+    el.__hitBound = true;
+    el.addEventListener('click', function (e) {
+      var chart = charts[id];
+      if (!chart) return;
+      var rect = el.getBoundingClientRect();
+      var x = e.clientX - rect.left;
+      var y = e.clientY - rect.top;
+      var name = (id === 'chartMarket' || id === 'chartType')
+        ? pieNameAt(el, chart, x, y)
+        : cartNameAt(chart, x, y, id === 'chartStatus');
+      if (name) onChartClick(id, { name: name });
+    });
+  }
+
+  function pieNameAt(el, chart, x, y) {
+    var w = el.clientWidth;
+    var h = el.clientHeight;
+    var base = Math.min(w, h);
+    var dx = x - w * 0.5;
+    var dy = y - h * 0.44;
+    var r = Math.sqrt(dx * dx + dy * dy);
+    if (r < base * 0.235 || r > base * 0.355) return null;
+    var deg = ((Math.atan2(dy, dx) * 180 / Math.PI) + 450) % 360;
+    var opt = chart.getOption();
+    var data = (opt.series && opt.series[0] && opt.series[0].data) || [];
+    var total = data.reduce(function (s, d) { return s + (Number(d.value) || 0); }, 0);
+    if (!total) return null;
+    var acc = 0;
+    for (var i = 0; i < data.length; i++) {
+      var span = (Number(data[i].value) || 0) / total * 360;
+      if (deg >= acc && deg < acc + span) return data[i].name;
+      acc += span;
+    }
+    return null;
+  }
+
+  function cartNameAt(chart, x, y, horizontal) {
+    var pos = chart.convertFromPixel({ gridIndex: 0 }, [x, y]);
+    if (!pos) return null;
+    var idx = Math.round(horizontal ? pos[1] : pos[0]);
+    var opt = chart.getOption();
+    var axis = horizontal ? (opt.yAxis && opt.yAxis[0]) : (opt.xAxis && opt.xAxis[0]);
+    var cats = (axis && axis.data) || [];
+    return cats[idx] || null;
   }
 
   function rankBy(rows, idx) {
@@ -248,6 +301,127 @@
     drawTrend(rows);
   }
 
+  /* ---------- 图表下钻 ---------- */
+  function onChartClick(id, p) {
+    if (!p || !p.name || p.name === '暂无数据') return;
+    var rows = baseRows();
+    if (id === 'chartMarket') {
+      var code = '';
+      Object.keys(MARKET).forEach(function (k) { if (MARKET[k] === p.name) code = k; });
+      openList('市场 · ' + p.name, rows.filter(function (r) { return r[1] === code; }));
+    } else if (id === 'chartType') {
+      openList('债券类型 · ' + p.name, rows.filter(function (r) { return r[2] === p.name; }));
+    } else if (id === 'chartStatus') {
+      var sc = '';
+      Object.keys(STATUS).forEach(function (k) { if (STATUS[k] === p.name) sc = k; });
+      openList('审核状态 · ' + p.name, rows.filter(function (r) { return r[6] === sc; }));
+    } else if (id === 'chartTrend') {
+      openList('受理 · ' + p.name,
+        rows.filter(function (r) { return tickOf(r[9], trendGran) === p.name; }));
+    }
+  }
+
+  /* ---------- 弹窗：项目列表 ---------- */
+  var listState = { rows: [], page: 1, per: 50 };
+
+  function openList(title, rows) {
+    listState = { rows: rows, page: 1, per: 50 };
+    $('listTitle').textContent = title;
+    $('listModal').classList.add('on');
+    $('overlay').classList.add('on');
+    renderList();
+  }
+
+  function renderList() {
+    var s = listState;
+    var total = s.rows.length;
+    var pages = Math.max(1, Math.ceil(total / s.per));
+    if (s.page > pages) s.page = pages;
+    var start = (s.page - 1) * s.per;
+    var page = s.rows.slice(start, start + s.per);
+    $('listSub').textContent = total
+      ? '共 ' + num(total) + ' 个项目 · 第 ' + s.page + ' / ' + pages + ' 页 · 点击行查看详情'
+      : '当前条件下没有项目';
+    if (!total) {
+      $('listBody').innerHTML = '<div style="text-align:center;padding:48px;color:#6B7280">没有符合条件的项目</div>';
+      return;
+    }
+    var head = '<table class="modal-table"><thead><tr>' +
+      '<th style="width:64px">市场</th><th>债券名称</th><th style="width:200px">发行人</th>' +
+      '<th style="width:80px">类型</th><th style="width:84px">规模(亿元)</th><th style="width:92px">状态</th>' +
+      '<th style="width:96px">受理日期</th><th style="width:96px">更新日期</th>' +
+      '</tr></thead><tbody>';
+    var body = page.map(function (r) {
+      var st = r[6] || 'OTHER';
+      return '<tr data-id="' + esc(r[0]) + '">' +
+        '<td>' + esc(MARKET[r[1]] || r[1]) + '</td>' +
+        '<td class="t-name" title="' + esc(r[4]) + '">' + esc(r[4]) + '</td>' +
+        '<td class="t-iss" title="' + esc(r[3]) + '">' + esc(r[3] || '—') + '</td>' +
+        '<td>' + esc(r[2] || '—') + '</td>' +
+        '<td class="num">' + (r[5] == null ? '—' : num(r[5])) + '</td>' +
+        '<td><span class="tag ' + st + '">' + esc(STATUS[st] || r[7] || st) + '</span></td>' +
+        '<td class="num">' + esc(r[9] || '—') + '</td>' +
+        '<td class="num">' + esc(r[10] || '—') + '</td>' +
+        '</tr>';
+    }).join('');
+    var foot = '<div class="modal-foot"><span>' + num(total) + ' 个项目</span><span>' +
+      '<button class="btn" data-lp="' + (s.page - 1) + '"' + (s.page === 1 ? ' disabled' : '') + '>上一页</button> ' +
+      '<button class="btn" data-lp="' + (s.page + 1) + '"' + (s.page === pages ? ' disabled' : '') + '>下一页</button>' +
+      '</span></div>';
+    $('listBody').innerHTML = head + body + '</tbody></table>' + foot;
+  }
+
+  /* ---------- 抽屉：单个项目详情 ---------- */
+  function openDetail(id) {
+    var r = BY_ID[id];
+    if (!r) return;
+    var st = r[6] || 'OTHER';
+    var pid = String(r[0] || '').split(':')[1] || r[0] || '—';
+    var items = [
+      ['市场', MARKET[r[1]] || r[1] || '—'],
+      ['债券类型', r[2] || '—'],
+      ['发行人', r[3] || '—'],
+      ['拟发行规模', r[5] == null ? '—' : num(r[5]) + ' 亿元'],
+      ['审核状态', STATUS[st] || r[7] || st],
+      ['交易所原始状态', r[7] || '—'],
+      ['承销商 / 管理人', r[8] || '—'],
+      ['受理日期', r[9] || '—'],
+      ['更新日期', r[10] || '—'],
+      ['项目编号', pid]
+    ];
+    $('drawerBody').innerHTML =
+      '<div class="d-hero">' +
+        '<div class="eyebrow">' + esc(MARKET[r[1]] || r[1]) + ' / 债券项目</div>' +
+        '<h3>' + esc(r[4] || '—') + '</h3>' +
+        '<div class="meta"><span class="tag ' + st + '">' + esc(STATUS[st] || r[7] || st) + '</span>' +
+        '<span class="hint">最后更新 ' + esc(r[10] || '—') + '</span></div>' +
+      '</div>' +
+      '<div class="d-grid">' + items.map(function (x) {
+        return '<div class="item"><div class="k">' + x[0] + '</div><div class="v">' + esc(x[1]) + '</div></div>';
+      }).join('') + '</div>' +
+      '<div class="d-sec">来源</div>' +
+      (r[11]
+        ? '<a class="d-link" href="' + esc(r[11]) + '" target="_blank" rel="noopener">' + esc(r[11]) + '</a>'
+        : '<div class="hint">未提供公开链接</div>');
+    $('drawer').classList.add('open');
+    $('overlay').classList.add('on');
+  }
+
+  function syncOverlay() {
+    var on = $('drawer').classList.contains('open') || $('listModal').classList.contains('on');
+    $('overlay').classList.toggle('on', on);
+  }
+
+  function closeList() {
+    $('listModal').classList.remove('on');
+    syncOverlay();
+  }
+
+  function closeDrawer() {
+    $('drawer').classList.remove('open');
+    syncOverlay();
+  }
+
   /* ---------- 明细表 ---------- */
   function opt(v, t) { var o = document.createElement('option'); o.value = v; o.textContent = t; return o; }
 
@@ -275,7 +449,7 @@
 
     $('tbody').innerHTML = page.length ? page.map(function (r) {
       var st = r[6] || 'OTHER';
-      return '<tr>' +
+      return '<tr data-id="' + esc(r[0]) + '">' +
         '<td>' + esc(MARKET[r[1]] || r[1]) + '</td>' +
         '<td class="t-name" title="' + esc(r[4]) + '">' + esc(r[4]) + '</td>' +
         '<td class="t-iss" title="' + esc(r[3]) + '">' + (r[3] ? esc(r[3]) : '—') + '</td>' +
@@ -379,6 +553,34 @@
         drawTrend(baseRows());
       });
     }
+
+    /* 明细行 → 项目详情抽屉 */
+    $('tbody').addEventListener('click', function (e) {
+      var tr = e.target.closest('tr[data-id]');
+      if (tr) openDetail(tr.dataset.id);
+    });
+    /* 弹窗内：翻页与行点击 */
+    $('listBody').addEventListener('click', function (e) {
+      var lp = e.target.closest('button[data-lp]');
+      if (lp) {
+        if (lp.disabled) return;
+        listState.page = Number(lp.dataset.lp) || 1;
+        renderList();
+        $('listBody').scrollTop = 0;
+        return;
+      }
+      var tr = e.target.closest('tr[data-id]');
+      if (tr) {
+        closeList();
+        openDetail(tr.dataset.id);
+      }
+    });
+    $('listClose').addEventListener('click', closeList);
+    $('drawerClose').addEventListener('click', closeDrawer);
+    $('overlay').addEventListener('click', function () { closeList(); closeDrawer(); });
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape') { closeList(); closeDrawer(); }
+    });
   }
 
   initSelects();

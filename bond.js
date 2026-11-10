@@ -61,38 +61,53 @@
       var d = parseDay(s);
       return d ? ymd(weekStart(d)) : '';
     }
+    if (gran === 'year') return s.slice(0, 4);
     return s.slice(0, 7);
   }
   function shortTick(v, gran) {
     if (!v) return v;
+    if (gran === 'year') return v;
     if (gran === 'month') return v.slice(2);
     return v.slice(5);
   }
 
   /* ---------- 筛选状态 ---------- */
+  var LATEST = DATA.reduce(function (m, r) { return r[9] > m ? r[9] : m; }, '');
+  var RANGE_DAYS = { '1m': 31, '3m': 92, '1y': 366 };
+  var RANGE_LABEL = { '1m': '近1月', '3m': '近3月', '1y': '近1年', all: '全部时间' };
+
   var state = {
-    q: '', market: '', type: '', status: '',
-    gran: '', period: '',
+    q: '', status: '', sponsor: '',
+    markets: {}, types: {},
+    gran: 'month', range: '1y',
     page: 1, per: 20
   };
-  var trendGran = 'month';
 
-  function timeFilter(r) {
-    if (!state.gran || !state.period) return true;
-    var d = r[9] || '';
-    if (!d) return false;
-    if (state.gran === 'day') return d === state.period;
-    if (state.gran === 'week') return weekKey(d) === state.period;
-    return d.slice(0, 7) === state.period;
+  function rangeStart() {
+    var days = RANGE_DAYS[state.range];
+    if (!days || !LATEST) return '';
+    var p = LATEST.split('-');
+    var d = new Date(+p[0], +p[1] - 1, +p[2]);
+    d.setDate(d.getDate() - days);
+    return ymd(d);
+  }
+
+  function picked(map) {
+    return Object.keys(map).filter(function (k) { return map[k]; });
   }
 
   function baseRows() {
+    var start = rangeStart();
+    var mk = picked(state.markets);
+    var tp = picked(state.types);
+    var q = state.q.trim().toLowerCase();
+    var sp = state.sponsor.trim().toLowerCase();
     return DATA.filter(function (r) {
-      if (state.market && r[1] !== state.market) return false;
-      if (state.type && r[2] !== state.type) return false;
+      if (start && (!r[9] || r[9] < start)) return false;
+      if (mk.length && mk.indexOf(r[1]) === -1) return false;
+      if (tp.length && tp.indexOf(r[2]) === -1) return false;
       if (state.status && r[6] !== state.status) return false;
-      if (!timeFilter(r)) return false;
-      var q = state.q.trim().toLowerCase();
+      if (sp && String(r[8] || '').toLowerCase().indexOf(sp) === -1) return false;
       if (q && (r[3] + ' ' + r[4] + ' ' + r[8]).toLowerCase().indexOf(q) === -1) return false;
       return true;
     });
@@ -127,9 +142,9 @@
     $('kTerm').textContent = num(counts.TERMINATED || 0);
     $('kTermSub').textContent = '占 ' + pct(counts.TERMINATED || 0);
 
-    $('stampDate').textContent = latest || '—';
+    $('stampDate').textContent = LATEST || '—';
     $('stampScope').textContent = Object.keys(markets).map(function (k) { return MARKET[k] || k; }).join(' · ') || '—';
-    $('ovNote').textContent = (state.gran ? '当前筛选 ' : '全量 ') + num(total) +
+    $('ovNote').textContent = (RANGE_LABEL[state.range] || '全部时间') + ' · ' + num(total) +
       ' 个项目 · 以各交易所公示的最新状态统计';
   }
 
@@ -155,9 +170,9 @@
       var rect = el.getBoundingClientRect();
       var x = e.clientX - rect.left;
       var y = e.clientY - rect.top;
-      var name = (id === 'chartMarket' || id === 'chartType')
+      var name = id === 'chartType'
         ? pieNameAt(el, chart, x, y)
-        : cartNameAt(chart, x, y, id === 'chartStatus');
+        : cartNameAt(chart, x, y, id === 'chartStatus' || id === 'chartMarket');
       if (name) onChartClick(id, { name: name });
     });
   }
@@ -201,6 +216,30 @@
       .sort(function (a, b) { return b.value - a.value; });
   }
 
+  /* 债券类型统一配色：同一类型在所有图表中颜色一致 */
+  var TYPE_ORDER = ['私募', '公募', '小公募', '大公募', 'ABS', '其他'];
+  var TYPE_COLORS = {
+    '私募': '#9A1831', '公募': '#2563EB', '小公募': '#D97706',
+    '大公募': '#7C3AED', 'ABS': '#059669', '其他': '#9CA3AF'
+  };
+  var TYPE_EXTRA = ['#0891B2', '#DB2777', '#65A30D', '#EA580C'];
+
+  function typeList(rows) {
+    var set = {};
+    rows.forEach(function (r) { if (r[2]) set[r[2]] = 1; });
+    var known = TYPE_ORDER.filter(function (t) { return set[t]; });
+    var extra = Object.keys(set).filter(function (t) {
+      return TYPE_ORDER.indexOf(t) === -1;
+    }).sort();
+    return known.concat(extra);
+  }
+
+  function typeColor(t, list) {
+    if (TYPE_COLORS[t]) return TYPE_COLORS[t];
+    var i = list.indexOf(t);
+    return TYPE_EXTRA[Math.max(0, i) % TYPE_EXTRA.length];
+  }
+
   function drawPie(id, rows, colorFn) {
     var chart = initChart(id);
     if (!chart) return;
@@ -220,51 +259,84 @@
     }, true);
   }
 
-  function drawStatus(rows) {
-    var chart = initChart('chartStatus');
+  function drawTypePie(rows) {
+    var list = typeList(rows);
+    var counts = {};
+    rows.forEach(function (r) { if (r[2]) counts[r[2]] = (counts[r[2]] || 0) + 1; });
+    drawPie('chartType', list.map(function (t) { return { name: t, value: counts[t] }; }),
+      function (x) { return typeColor(x.name, list); });
+  }
+
+  /* 横向堆叠条形：按债券类型分段着色 */
+  function drawStack(id, catNames, catKeys, types, countFn, barH) {
+    var chart = initChart(id);
     if (!chart) return;
-    var stRows = rankBy(rows, 6);
-    var el = $('chartStatus');
-    el.style.height = Math.max(260, stRows.length * 34 + 40) + 'px';
+    var el = $(id);
+    el.style.height = Math.max(260, catNames.length * barH + 92) + 'px';
     chart.resize();
     chart.setOption({
       animation: false,
       textStyle: { fontSize: 11, color: '#6B7280' },
-      grid: { left: 92, right: 56, top: 8, bottom: 20 },
-      tooltip: { trigger: 'item', appendToBody: true, formatter: '{b}<br/>{c} 个' },
+      tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' }, appendToBody: true },
+      legend: { bottom: 0, icon: 'circle', itemWidth: 9, itemHeight: 9, textStyle: { fontSize: 11, color: '#6B7280' } },
+      grid: { left: 96, right: 60, top: 12, bottom: 48 },
       xAxis: { type: 'value', splitLine: { lineStyle: { color: '#F0F1F3' } }, axisLabel: axis.axisLabel, axisLine: { show: false }, axisTick: { show: false } },
       yAxis: {
-        type: 'category', data: stRows.map(function (x) { return STATUS[x.name] || x.name; }),
+        type: 'category', data: catNames,
         axisLabel: { color: '#111827', fontSize: 11 }, axisLine: { show: false }, axisTick: { show: false }
       },
-      series: [{
-        type: 'bar', data: stRows.map(function (x) { return x.value; }), barWidth: '52%',
-        showBackground: true, backgroundStyle: { color: '#F4F5F7', borderRadius: 3 },
-        itemStyle: {
-          borderRadius: 3,
-          color: function (p) { return STATUS_COLOR[stRows[p.dataIndex].name] || '#9CA3AF'; }
-        },
-        label: { show: true, position: 'right', color: '#111827', fontSize: 10, fontWeight: 600 }
-      }]
+      series: types.map(function (t) {
+        return {
+          name: t, type: 'bar', stack: 's', barWidth: '54%',
+          itemStyle: { color: typeColor(t, types) },
+          data: catKeys.map(function (k) { return countFn(k, t); })
+        };
+      })
     }, true);
+  }
+
+  function drawMarket(rows) {
+    var types = typeList(rows);
+    var keys = ['SSE', 'SZSE', 'BSE'].filter(function (k) {
+      return rows.some(function (r) { return r[1] === k; });
+    });
+    drawStack('chartMarket', keys.map(function (k) { return MARKET[k] || k; }), keys, types,
+      function (k, t) {
+        return rows.filter(function (r) { return r[1] === k && r[2] === t; }).length;
+      }, 46);
+  }
+
+  function drawStatus(rows) {
+    var st = rankBy(rows, 6);
+    var types = typeList(rows);
+    drawStack('chartStatus', st.map(function (x) { return STATUS[x.name] || x.name; }),
+      st.map(function (x) { return x.name; }), types,
+      function (k, t) {
+        return rows.filter(function (r) { return r[6] === k && r[2] === t; }).length;
+      }, 40);
   }
 
   function drawTrend(rows) {
     var chart = initChart('chartTrend');
     if (!chart) return;
+    var types = typeList(rows);
     var count = {};
     rows.forEach(function (r) {
-      var k = tickOf(r[9], trendGran);
-      if (k) count[k] = (count[k] || 0) + 1;
+      var k = tickOf(r[9], state.gran);
+      if (!k) return;
+      if (!count[k]) count[k] = {};
+      var t = r[2] || '其他';
+      count[k][t] = (count[k][t] || 0) + 1;
     });
     var ticks = Object.keys(count).sort();
-    if (trendGran === 'month' && ticks.length > 36) ticks = ticks.slice(-36);
+    if (state.gran === 'month' && ticks.length > 36) ticks = ticks.slice(-36);
     var zoom = ticks.length > 40;
     chart.setOption({
       animation: false,
       textStyle: { fontSize: 11, color: '#6B7280' },
-      grid: { left: 40, right: 14, top: 22, bottom: zoom ? 58 : 46 },
-      tooltip: { trigger: 'axis', appendToBody: true, formatter: '{b}<br/>{c} 个' },
+      tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' }, appendToBody: true },
+      legend: { bottom: zoom ? 34 : 0, icon: 'circle', itemWidth: 9, itemHeight: 9, textStyle: { fontSize: 11, color: '#6B7280' } },
+      grid: { left: 40, right: 14, top: 22, bottom: zoom ? 88 : 60 },
       dataZoom: zoom ? [
         { type: 'inside', start: ticks.length > 120 ? 70 : 0, end: 100 },
         { type: 'slider', height: 14, bottom: 8, borderColor: '#E5E7EB',
@@ -274,29 +346,24 @@
         type: 'category', data: ticks,
         axisLabel: {
           color: '#6B7280', fontSize: 9, rotate: 45, hideOverlap: true,
-          formatter: function (v) { return shortTick(v, trendGran); }
+          formatter: function (v) { return shortTick(v, state.gran); }
         },
         axisLine: axis.axisLine, axisTick: { show: false }
       },
       yAxis: { type: 'value', splitLine: { lineStyle: { color: '#F0F1F3' } }, axisLabel: axis.axisLabel, axisLine: { show: false }, axisTick: { show: false } },
-      series: [{
-        type: 'bar', data: ticks.map(function (m) { return count[m]; }), barWidth: '62%',
-        itemStyle: {
-          borderRadius: [3, 3, 0, 0],
-          color: function (p) {
-            var t = ticks.length > 1 ? p.dataIndex / (ticks.length - 1) : 1;
-            return p.dataIndex === ticks.length - 1 ? '#D97706' : (t > 0.5 ? '#B32B4A' : '#9A1831');
-          }
-        }
-      }]
+      series: types.map(function (t) {
+        return {
+          name: t, type: 'bar', stack: 'tr', barWidth: '62%',
+          itemStyle: { color: typeColor(t, types) },
+          data: ticks.map(function (k) { return (count[k] && count[k][t]) || 0; })
+        };
+      })
     }, true);
   }
 
   function renderCharts(rows) {
-    drawPie('chartMarket',
-      rankBy(rows, 1).map(function (x) { return { name: MARKET[x.name] || x.name, value: x.value, key: x.name }; }),
-      function (x) { return MARKET_COLOR[x.key || ''] || '#9CA3AF'; });
-    drawPie('chartType', rankBy(rows, 2), function (x, i) { return TYPE_COLOR[i % TYPE_COLOR.length]; });
+    drawMarket(rows);
+    drawTypePie(rows);
     drawStatus(rows);
     drawTrend(rows);
   }
@@ -317,7 +384,7 @@
       openList('审核状态 · ' + p.name, rows.filter(function (r) { return r[6] === sc; }));
     } else if (id === 'chartTrend') {
       openList('受理 · ' + p.name,
-        rows.filter(function (r) { return tickOf(r[9], trendGran) === p.name; }));
+        rows.filter(function (r) { return tickOf(r[9], state.gran) === p.name; }));
     }
   }
 
@@ -384,6 +451,8 @@
       ['拟发行规模', r[5] == null ? '—' : num(r[5]) + ' 亿元'],
       ['审核状态', STATUS[st] || r[7] || st],
       ['交易所原始状态', r[7] || '—'],
+      ['地区', r[12] || '—'],
+      ['交易所确认文件文号', r[13] || '—'],
       ['承销商 / 管理人', r[8] || '—'],
       ['受理日期', r[9] || '—'],
       ['更新日期', r[10] || '—'],
@@ -401,7 +470,9 @@
       }).join('') + '</div>' +
       '<div class="d-sec">来源</div>' +
       (r[11]
-        ? '<a class="d-link" href="' + esc(r[11]) + '" target="_blank" rel="noopener">' + esc(r[11]) + '</a>'
+        ? '<a class="d-link" href="' + esc(r[11]) + '" target="_blank" rel="noopener">' +
+            esc({ SSE: '上交所项目详情页', SZSE: '深交所项目进度信息', BSE: '北交所项目详情页' }[r[1]] || '交易所项目页') +
+          '</a><div style="font-size:11px;color:#9CA3AF;word-break:break-all;margin-top:4px">' + esc(r[11]) + '</div>'
         : '<div class="hint">未提供公开链接</div>');
     $('drawer').classList.add('open');
     $('overlay').classList.add('on');
@@ -426,16 +497,57 @@
   function opt(v, t) { var o = document.createElement('option'); o.value = v; o.textContent = t; return o; }
 
   function initSelects() {
-    var typeVals = {}, statusVals = {}, marketVals = {};
-    DATA.forEach(function (r) {
-      if (r[2]) typeVals[r[2]] = 1;
-      if (r[6]) statusVals[r[6]] = 1;
-      if (r[1]) marketVals[r[1]] = 1;
-    });
-    Object.keys(MARKET).forEach(function (k) { if (marketVals[k]) $('fMarket').appendChild(opt(k, MARKET[k])); });
-    Object.keys(typeVals).sort().forEach(function (k) { $('fType').appendChild(opt(k, k)); });
+    var statusVals = {};
+    DATA.forEach(function (r) { if (r[6]) statusVals[r[6]] = 1; });
     Object.keys(STATUS).forEach(function (k) {
       if (statusVals[k]) $('fStatus').appendChild(opt(k, STATUS[k]));
+    });
+  }
+
+  function initChips() {
+    var markets = {}, types = {};
+    DATA.forEach(function (r) {
+      if (r[1]) markets[r[1]] = 1;
+      if (r[2]) types[r[2]] = 1;
+    });
+    function build(box, values, labels) {
+      var all = document.createElement('button');
+      all.type = 'button';
+      all.className = 'chip all on';
+      all.dataset.v = '';
+      all.textContent = '全部';
+      box.appendChild(all);
+      Object.keys(values).sort().forEach(function (v) {
+        var b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'chip';
+        b.dataset.v = v;
+        b.textContent = labels ? (labels[v] || v) : v;
+        box.appendChild(b);
+      });
+    }
+    build($('marketChips'), markets, MARKET);
+    build($('typeChips'), types, null);
+  }
+
+  function toggleChips(box, key) {
+    box.addEventListener('click', function (e) {
+      var b = e.target.closest('button.chip');
+      if (!b) return;
+      if (!b.dataset.v) {
+        state[key] = {};
+      } else {
+        state[key][b.dataset.v] = !state[key][b.dataset.v];
+      }
+      Array.prototype.forEach.call(box.querySelectorAll('.chip'), function (x) {
+        if (!x.dataset.v) {
+          x.classList.toggle('on', picked(state[key]).length === 0);
+        } else {
+          x.classList.toggle('on', !!state[key][x.dataset.v]);
+        }
+      });
+      state.page = 1;
+      renderAll();
     });
   }
 
@@ -482,56 +594,47 @@
     renderTable(rows);
   }
 
-  /* ---------- 时间筛选控件 ---------- */
-  function syncPeriodInput() {
-    var el = $('fPeriod');
-    var g = state.gran;
-    if (!g) {
-      el.value = '';
-      el.disabled = true;
-      el.removeAttribute('min');
-      el.removeAttribute('max');
-      state.period = '';
-      return;
-    }
-    el.disabled = false;
-    // 切换 input type 前清掉旧格式的 min/max，避免浏览器忽略或误判区间
-    el.removeAttribute('min');
-    el.removeAttribute('max');
-    el.type = g === 'day' ? 'date' : (g === 'week' ? 'week' : 'month');
-    var days = DATA.map(function (r) { return r[9]; }).filter(function (d) { return d && d.length === 10; }).sort();
-    if (!el.value) {
-      var last = days[days.length - 1] || '';
-      el.value = g === 'month' ? last.slice(0, 7) : (g === 'week' ? weekKey(last) : last);
-    }
-    if (g === 'month' && days.length) {
-      el.min = days[0].slice(0, 7);
-      el.max = days[days.length - 1].slice(0, 7);
-    }
-    state.period = el.value;
-  }
-
+  /* ---------- 事件绑定 ---------- */
   function bind() {
     var timer;
+    var spTimer;
     $('q').addEventListener('input', function (e) {
       clearTimeout(timer);
       var v = e.target.value;
       timer = setTimeout(function () { state.q = v; state.page = 1; renderAll(); }, 160);
     });
-    $('fMarket').addEventListener('change', function (e) { state.market = e.target.value; state.page = 1; renderAll(); });
-    $('fType').addEventListener('change', function (e) { state.type = e.target.value; state.page = 1; renderAll(); });
+    $('fSponsor').addEventListener('input', function (e) {
+      clearTimeout(spTimer);
+      var v = e.target.value;
+      spTimer = setTimeout(function () { state.sponsor = v; state.page = 1; renderAll(); }, 220);
+    });
     $('fStatus').addEventListener('change', function (e) { state.status = e.target.value; state.page = 1; renderAll(); });
-    $('fGran').addEventListener('change', function (e) {
-      state.gran = e.target.value;
+    $('fPer').addEventListener('change', function (e) {
+      state.per = Number(e.target.value) || 20;
       state.page = 1;
-      syncPeriodInput();
+      renderTable(baseRows());
+    });
+    $('granSeg').addEventListener('click', function (e) {
+      var b = e.target.closest('button[data-g]');
+      if (!b) return;
+      state.gran = b.dataset.g;
+      Array.prototype.forEach.call($('granSeg').children, function (x) {
+        x.classList.toggle('on', x === b);
+      });
       renderAll();
     });
-    $('fPeriod').addEventListener('change', function (e) {
-      state.period = e.target.value;
+    $('rangeSeg').addEventListener('click', function (e) {
+      var b = e.target.closest('button[data-r]');
+      if (!b) return;
+      state.range = b.dataset.r;
+      Array.prototype.forEach.call($('rangeSeg').children, function (x) {
+        x.classList.toggle('on', x === b);
+      });
       state.page = 1;
       renderAll();
     });
+    toggleChips($('marketChips'), 'markets');
+    toggleChips($('typeChips'), 'types');
     $('pager').addEventListener('click', function (e) {
       var b = e.target.closest('button');
       if (!b || b.disabled) return;
@@ -541,18 +644,6 @@
       renderTable(baseRows());
       document.querySelector('.table-wrap').scrollTop = 0;
     });
-    var tg = $('trendGran');
-    if (tg) {
-      tg.addEventListener('click', function (e) {
-        var b = e.target.closest('button[data-gran]');
-        if (!b) return;
-        Array.prototype.forEach.call(tg.querySelectorAll('button'), function (x) {
-          x.classList.toggle('on', x === b);
-        });
-        trendGran = b.dataset.gran;
-        drawTrend(baseRows());
-      });
-    }
 
     /* 明细行 → 项目详情抽屉 */
     $('tbody').addEventListener('click', function (e) {
@@ -584,6 +675,7 @@
   }
 
   initSelects();
+  initChips();
   bind();
   renderAll();
 

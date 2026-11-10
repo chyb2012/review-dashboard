@@ -471,9 +471,12 @@
       '<div class="d-sec">来源</div>' +
       (r[11]
         ? '<a class="d-link" href="' + esc(r[11]) + '" target="_blank" rel="noopener">' +
-            esc({ SSE: '上交所项目详情页', SZSE: '深交所项目进度信息', BSE: '北交所项目详情页' }[r[1]] || '交易所项目页') +
+            esc({ SSE: '上交所项目详情页', SZSE: '深交所项目明细（接口数据）', BSE: '北交所项目详情页' }[r[1]] || '交易所项目页') +
           '</a><div style="font-size:11px;color:#9CA3AF;word-break:break-all;margin-top:4px">' + esc(r[11]) + '</div>'
-        : '<div class="hint">未提供公开链接</div>');
+        : '<div class="hint">未提供公开链接</div>') +
+      (r[1] === 'SZSE'
+        ? '<div style="margin-top:8px"><a class="d-link" href="https://bond.szse.cn/disclosure/progressinfo/index.html" target="_blank" rel="noopener">深交所项目进度信息列表</a></div>'
+        : '');
     $('drawer').classList.add('open');
     $('overlay').classList.add('on');
   }

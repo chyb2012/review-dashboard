@@ -6,8 +6,11 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>债券项目审核动态看板 | 沪深北交易所</title>
 <style>
+@font-face{font-family:'Work Sans';src:url('./coaching/_shared/fonts/WorkSans-Regular.ttf') format('truetype');font-weight:400;font-display:swap}
+@font-face{font-family:'Work Sans';src:url('./coaching/_shared/fonts/WorkSans-Bold.ttf') format('truetype');font-weight:700;font-display:swap}
+@font-face{font-family:'JetBrains Mono';src:url('./coaching/_shared/fonts/JetBrainsMono-Regular.ttf') format('truetype');font-weight:400;font-display:swap}
 *{box-sizing:border-box}
-body{margin:0;background:#F2F4F7;color:#111827;font-family:'Microsoft YaHei','PingFang SC',sans-serif;font-size:14px;line-height:1.6;-webkit-font-smoothing:antialiased}
+body{margin:0;background:#F2F4F7;color:#111827;font-family:'Work Sans','PingFang SC','Microsoft YaHei',sans-serif;font-size:13px;line-height:1.6;-webkit-font-smoothing:antialiased}
 .wrap{max-width:none;margin:0;padding:0 32px 48px}
 .masthead{background:#fff;border-bottom:1px solid #E5E7EB;padding:30px 0 22px;margin-bottom:26px}
 .masthead .inner{max-width:none;margin:0;padding:0 32px;display:flex;justify-content:space-between;align-items:flex-end;gap:24px;flex-wrap:wrap}
@@ -18,23 +21,32 @@ h1{font-size:28px;margin:0 0 6px;font-weight:700}
 .stamp b{display:block;font-size:19px;color:#111827}
 section{margin-bottom:30px}
 .sec-head{display:flex;justify-content:space-between;align-items:baseline;gap:16px;margin-bottom:12px;flex-wrap:wrap}
-h2{font-size:16px;margin:0;padding-left:10px;border-left:3px solid #9A1831;line-height:1.3}
+h2{font-size:17px;margin:0;padding-left:10px;border-left:3px solid #9A1831;line-height:1.3}
 .sec-note{font-size:12px;color:#6B7280}
 .kpi-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:12px}
-.kpi{background:#fff;border:1px solid #E5E7EB;border-top:3px solid #9A1831;border-radius:6px;padding:15px 16px 13px}
+.kpi{background:#fff;border:1px solid #E5E7EB;border-top:3px solid #9A1831;border-radius:8px;padding:15px 16px 13px}
 .kpi .k-label{font-size:12px;color:#6B7280;margin-bottom:7px;white-space:nowrap}
-.kpi .k-value{font-size:28px;font-weight:700;line-height:1}
-.kpi .k-sub{font-size:11px;color:#6B7280;margin-top:6px}
+.kpi .k-value{font-family:'Work Sans','JetBrains Mono','Microsoft YaHei',sans-serif;font-size:32px;font-weight:700;line-height:1;font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+.kpi .k-sub{font-size:11px;color:#6B7280;margin-top:6px;font-variant-numeric:tabular-nums}
 .kpi.total{border-top-color:#111827}.kpi.total .k-value{color:#111827}
 .kpi.review{border-top-color:#9A1831}.kpi.review .k-value{color:#9A1831}
 .kpi.passed{border-top-color:#D97706}.kpi.passed .k-value{color:#D97706}
 .kpi.reg{border-top-color:#2563EB}.kpi.reg .k-value{color:#2563EB}
 .kpi.issued{border-top-color:#059669}.kpi.issued .k-value{color:#059669}
 .kpi.term{border-top-color:#6B7280}.kpi.term .k-value{color:#6B7280}
+.kpi.total{background:linear-gradient(180deg,#F3F4F6 0%,#fff 55%)}
+.kpi.review{background:linear-gradient(180deg,#FBEAED 0%,#fff 55%)}
+.kpi.passed{background:linear-gradient(180deg,#FFFBEB 0%,#fff 55%)}
+.kpi.reg{background:linear-gradient(180deg,#EFF6FF 0%,#fff 55%)}
+.kpi.issued{background:linear-gradient(180deg,#ECFDF5 0%,#fff 55%)}
+.kpi.term{background:linear-gradient(180deg,#F3F4F6 0%,#fff 55%)}
 .chart-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
-.card{background:#fff;border:1px solid #E5E7EB;border-radius:6px;padding:16px 18px 10px}
+.card{background:#fff;border:1px solid #E5E7EB;border-radius:8px;padding:16px 18px 10px}
 .card figcaption{font-size:13px;font-weight:700;margin-bottom:4px;position:relative;padding-left:12px}
-.card figcaption::before{content:'';position:absolute;left:0;top:50%;margin-top:-3px;width:7px;height:7px;border-radius:2px;background:#9A1831}
+.card figcaption::before{content:'';position:absolute;left:0;top:50%;margin-top:-3px;width:7px;height:7px;border-radius:2px;background:#3B82F6}
+.chart-grid > .card:nth-child(2) figcaption::before{background:#10B981}
+.chart-grid > .card:nth-child(3) figcaption::before{background:#8B5CF6}
+.chart-grid > .card:nth-child(4) figcaption::before{background:#F59E0B}
 .card figcaption span{font-weight:400;color:#6B7280;font-size:12px;margin-left:8px}
 .chart-box{height:320px}
 .toolbar{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px}
@@ -43,9 +55,9 @@ input[type=search]:focus{border-color:#9A1831}
 select{padding:9px 12px;border:1px solid #E5E7EB;border-radius:5px;font-size:13px;background:#fff;color:#111827;outline:none;max-width:190px}
 .result-count{margin-left:auto;font-size:12px;color:#6B7280;align-self:center}
 .result-count b{color:#111827;font-size:14px}
-.table-wrap{max-height:680px;overflow:auto;border:1px solid #E5E7EB;border-radius:6px;background:#fff}
-table{width:100%;border-collapse:collapse;font-size:12.5px}
-thead th{position:sticky;top:0;z-index:2;background:#9A1831;color:#fff;text-align:left;padding:10px;font-size:12px;white-space:nowrap}
+.table-wrap{max-height:680px;overflow:auto;border:1px solid #E5E7EB;border-radius:8px;background:#fff}
+table{width:100%;border-collapse:collapse;font-size:12px}
+thead th{position:sticky;top:0;z-index:2;background:#F9FAFB;color:#6B7280;text-align:left;padding:9px 10px;font-size:11px;font-weight:600;white-space:nowrap;border-bottom:1px solid #E5E7EB}
 tbody td{padding:9px 10px;border-bottom:1px solid #E5E7EB;vertical-align:middle}
 tbody tr:hover{background:#F9FAFB}
 tbody tr{cursor:pointer}
@@ -105,14 +117,15 @@ footer a{color:#9A1831;text-decoration:none;word-break:break-all}
 .modal-foot .btn:hover:not(:disabled){border-color:#9A1831;color:#9A1831}
 .modal-foot .btn:disabled{opacity:.45;cursor:not-allowed}
 .chart-grid .card{cursor:pointer}
+#boot{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);background:#fff;border:1px solid #E5E7EB;border-radius:8px;padding:14px 22px;font-size:13px;color:#6B7280;box-shadow:0 8px 24px rgba(16,24,40,.1);z-index:90}
 /* ---------- 顶部筛选条 ---------- */
-.filterbar{background:#fff;border:1px solid #E5E7EB;border-radius:6px;padding:14px 16px;margin-bottom:18px;display:flex;flex-direction:column;gap:11px}
+.filterbar{background:#fff;border:1px solid #E5E7EB;border-radius:8px;padding:14px 16px;margin-bottom:18px;display:flex;flex-direction:column;gap:11px}
 .fb-row{display:flex;gap:24px;flex-wrap:wrap;align-items:center}
 .fb-group{display:flex;align-items:center;gap:8px}
 .fb-group.grow{flex:1;min-width:260px}
 .fb-group.grow input{width:100%}
 .fb-label{font-size:12px;color:#6B7280;white-space:nowrap}
-.seg{display:inline-flex;background:#F3F4F6;border-radius:6px;padding:2px;gap:2px}
+.seg{display:inline-flex;background:#F3F4F6;border-radius:8px;padding:2px;gap:2px}
 .seg button{border:0;background:transparent;padding:4px 12px;border-radius:4px;font-size:12px;color:#6B7280;cursor:pointer}
 .seg button:hover{color:#111827}
 .seg button.on{background:#fff;color:#9A1831;font-weight:600;box-shadow:0 1px 2px rgba(16,24,40,.08)}
@@ -138,6 +151,7 @@ footer a{color:#9A1831;text-decoration:none;word-break:break-all}
 </header>
 
 <main class="wrap">
+  <div id="boot">数据加载中，请稍候…</div>
   <section class="filterbar">
     <div class="fb-row">
       <div class="fb-group">
@@ -277,7 +291,7 @@ footer a{color:#9A1831;text-decoration:none;word-break:break-all}
 </div>
 
 <script src="./vendor/echarts.min.js"></script>
-<script src="bond-data.js?v=20261110174116"></script>
-<script src="bond.js?v=20261110175506"></script>
+<script src="bond-data.js?v=20261110182432"></script>
+<script src="bond.js?v=20261110182432"></script>
 </body>
 </html>

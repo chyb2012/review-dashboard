@@ -272,7 +272,7 @@
     var chart = initChart(id);
     if (!chart) return;
     var el = $(id);
-    el.style.height = Math.max(260, catNames.length * barH + 92) + 'px';
+    el.style.height = '320px';
     chart.resize();
     chart.setOption({
       animation: false,
@@ -700,6 +700,8 @@
   initChips();
   bind();
   renderAll();
+  var boot = $('boot');
+  if (boot) boot.style.display = 'none';
 
   window.addEventListener('resize', function () {
     Object.keys(charts).forEach(function (k) { charts[k].resize(); });

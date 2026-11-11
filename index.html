@@ -4,18 +4,12 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>发行上市审核动态 · 沪深北与股转</title>
-<link rel="stylesheet" href="./styles.css?v=20261111105556">
+<link rel="stylesheet" href="./styles.css?v=20261111011019">
 <script src="./vendor/echarts.min.js"></script>
-<script src="./statengine.js?v=20261111105556"></script>
+<script src="./statengine.js?v=20261111011019"></script>
 </head>
 <body data-static="1">
-<nav class="view-tabs" id="viewTabs">
-  <button class="view-tab on" data-view="review">发行审核动态</button>
-  <button class="view-tab" data-view="coaching">辅导项目看板</button>
-  <button class="view-tab" data-view="bond">债券审核动态</button>
-</nav>
-
-<header class="masthead" id="reviewHeader">
+<header class="masthead">
   <div class="mast-left">
     <div class="eyebrow">SSE · SZSE · BSE · NEEQ / REVIEW MONITOR</div>
     <h1>发行上市审核动态</h1>
@@ -25,8 +19,15 @@
     <div class="date" id="today"></div>
     <div class="sync-chips" id="syncChips"></div>
     <a href="./sync.html" style="text-decoration:none;color:#334155;border:1px solid #cbd5e1;background:#fff;border-radius:8px;padding:7px 11px;font-size:13px;white-space:nowrap">数据更新日志</a>
+    <button class="ghost" id="refreshBtn">刷新数据</button>
   </div>
 </header>
+
+<nav class="view-tabs" id="viewTabs">
+  <button class="view-tab on" data-view="review">发行审核动态</button>
+  <button class="view-tab" data-view="coaching">辅导项目看板</button>
+  <button class="view-tab" data-view="bond">债券审核动态</button>
+</nav>
 
 <section class="filters" id="filters">
   <div class="fblock">
@@ -205,6 +206,6 @@
 <section class="bond-view hidden" id="bondView">
   <iframe id="bondFrame" title="债券审核动态看板" data-src="./bond.html"></iframe>
 </section>
-<script src="./app.js?v=20261111105556"></script>
+<script src="./app.js?v=20261111011019"></script>
 </body>
 </html>

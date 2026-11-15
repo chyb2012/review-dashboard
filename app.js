@@ -105,12 +105,6 @@
     STATIC.meta = meta;
     STATIC.profileIds = new Set(profIds || []);
     STATIC.docIds = new Set(docIds || []);
-    const btn = $('#refreshBtn');
-    if (btn) {
-      btn.disabled = true;
-      btn.textContent = '数据每日自动更新';
-      btn.title = '本页为静态站点，数据由定时任务更新';
-    }
   }
 
   const fullName = (p) => {
@@ -184,7 +178,7 @@
         .map((b) => `<option value="${b}">${b}</option>`).join('');
     $('#sponsorList').innerHTML = (m.sponsors || []).slice(0, 400).map((s) => `<option value="${esc(s)}">`).join('');
 
-    $('#syncChips').innerHTML = (m.sync || []).map((s) => {
+    $('#syncChips').innerHTML = (m.sync || []).filter((s) => s.source !== 'csrc_eid').map((s) => {
       const name = { sse: '上交所', szse: '深交所', bse: '北交所', neeq: '股转', ipo_issue: '发行上市' }[s.source] || s.source;
       return `<span class="s${s.ok ? '' : ' bad'}">${name} ${s.records ? `<b>${num(s.records)}</b> 条更新` : '无变化'} · ${esc((s.finished_at || '').slice(5, 16))}</span>`;
     }).join('') + `<span class="s">入库 <b>${num(m.total)}</b> 项</span>`;
@@ -711,6 +705,7 @@
   /* ---------- events ---------- */
   function bind() {
     const setView = (v) => {
+      $('#reviewHeader').classList.toggle('hidden', v !== 'review');
       $('#filters').classList.toggle('hidden', v !== 'review');
       $('main').classList.toggle('hidden', v !== 'review');
       $('#coachingView').classList.toggle('hidden', v !== 'coaching');
@@ -856,26 +851,6 @@
       const u = new URL('/api/export', location.origin);
       Object.entries(p).forEach(([k, v]) => { if (v) u.searchParams.set(k, v); });
       location.href = u.toString();
-    });
-    $('#refreshBtn').addEventListener('click', async () => {
-      $('#refreshBtn').disabled = true; $('#refreshBtn').textContent = '同步中…';
-      try {
-        const r = await api('/api/sync', null, { method: 'POST' });
-        if (!r.started) toast(r.message || '已有同步任务在运行');
-        const poll = setInterval(async () => {
-          try {
-            const st = await api('/api/sync/status');
-            if (!st.active) {
-              clearInterval(poll);
-              $('#refreshBtn').disabled = false; $('#refreshBtn').textContent = '刷新数据';
-              await loadMeta(); await load();
-              toast('数据同步完成');
-            }
-          } catch (e) { clearInterval(poll); $('#refreshBtn').disabled = false; $('#refreshBtn').textContent = '刷新数据'; }
-        }, 2000);
-      } catch (e) {
-        $('#refreshBtn').disabled = false; $('#refreshBtn').textContent = '刷新数据'; toast(e.message);
-      }
     });
     window.addEventListener('resize', () => Object.values(charts).forEach((c) => c.resize()));
     document.addEventListener('keydown', (e) => {

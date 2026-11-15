@@ -356,15 +356,31 @@
     return { total: out.length, items: out.slice(0, 300) };
   }
 
+  const STAGE_DATE = {
+    '已受理': 'accept_date', '已问询': 'inquiry_date', '已回复': 'reply_date',
+    '上市委会议': 'meeting_date', '提交注册': 'submit_date', '注册结果': 'register_date',
+    '终止': 'terminate_date', '已启动发行': 'issue_date', '已上市': 'list_date',
+  };
+
   function filterRows(items, params) {
     const p = params || {};
     const [start, end] = normalizeRange(p.frm, p.to);
     let rows = select(items, split(p.markets), split(p.types), p.sponsor);
-    rows = rows.filter((x) => ['accept_date', 'pass_date', 'register_date', 'terminate_date', 'update_date']
-      .some((k) => inRange(x[k], start, end)));
+    const anyDate = (x) => ['accept_date', 'pass_date', 'register_date', 'terminate_date', 'update_date']
+      .some((k) => inRange(x[k], start, end));
+    if (p.stage) {
+      const field = STAGE_DATE[p.stage];
+      if (field) {
+        rows = rows.filter((x) => inRange(
+          field === 'meeting_date' ? (x.meeting_date || x.pass_date) : x[field], start, end));
+      } else {
+        rows = rows.filter((x) => (x.stage || '') === p.stage).filter(anyDate);
+      }
+    } else {
+      rows = rows.filter(anyDate);
+    }
     if (p.board) rows = rows.filter((x) => (x.board || '') === p.board);
     if (p.status) rows = rows.filter((x) => x.status === p.status);
-    if (p.stage) rows = rows.filter((x) => x.stage === p.stage);
     if (p.q) {
       const ql = p.q.toLowerCase();
       rows = rows.filter((x) => [x.name, x.short_name, x.code]

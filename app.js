@@ -223,7 +223,7 @@
     ];
     $('#kpis').innerHTML = items.map(([c, t, v, n]) =>
       `<div class="kpi ${c}"><div class="k">${t}</div><div class="v">${num(v)}</div><div class="n">${n}</div></div>`).join('');
-    const note = state.flow === 'all' ? '柱：受理 / 过会 / 提交注册 / 取得批文（堆叠）' : `当前：${flowInfo().name}`;
+    const note = state.flow === 'all' ? '柱：受理 / 过会 / 取得批文（堆叠）' : `当前：${flowInfo().name}`;
     $('#legendNote').textContent = `${note} · ${s.from} — ${s.to} · ${num(s.projectCount)} 个有变动项目`;
   }
 
@@ -237,7 +237,7 @@
   function renderMain(s) {
     const labels = s.series.map((x) => x.label);
     const all = state.flow === 'all';
-    const keys = all ? ['accepted', 'passed', 'submit', 'registered'] : [state.flow];
+    const keys = all ? ['accepted', 'passed', 'registered'] : [state.flow];
     const info = flowInfo();
     const labelStyle = {
       show: false, position: 'top', distance: 4, fontSize: 10, color: '#4B5563',
@@ -734,7 +734,7 @@
       state.flow = e.target.value;
       if (!lastStats) return;
       renderMain(lastStats);
-      const note = state.flow === 'all' ? '柱：受理 / 过会 / 提交注册 / 取得批文（堆叠）' : `当前：${flowInfo().name}`;
+      const note = state.flow === 'all' ? '柱：受理 / 过会 / 取得批文（堆叠）' : `当前：${flowInfo().name}`;
       $('#legendNote').textContent = `${note} · ${lastStats.from} — ${lastStats.to} · ${num(lastStats.projectCount)} 个有变动项目`;
     });
     $('#rangeSeg').addEventListener('click', (e) => {

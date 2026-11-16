@@ -4,9 +4,9 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>发行上市审核动态 · 沪深北与股转</title>
-<link rel="stylesheet" href="./styles.css?v=20261116080512">
+<link rel="stylesheet" href="./styles.css?v=20261116083503">
 <script src="./vendor/echarts.min.js"></script>
-<script src="./statengine.js?v=20261116080512"></script>
+<script src="./statengine.js?v=20261116083503"></script>
 </head>
 <body data-static="1">
 <nav class="view-tabs" id="viewTabs">
@@ -138,10 +138,10 @@
       </div>
       <div class="table-filters" id="tableFilters">
         <input id="tblQ" class="tf-input" placeholder="发行人 / 简称 / 代码">
-        <select id="tblMarket" class="tf-sel"></select>
-        <select id="tblBoard" class="tf-sel"></select>
-        <select id="tblType" class="tf-sel"></select>
-        <select id="tblStage" class="tf-sel"></select>
+        <div class="ms" id="msMarket"></div>
+        <div class="ms" id="msBoard"></div>
+        <div class="ms" id="msType"></div>
+        <div class="ms" id="msStage"></div>
         <input id="tblSponsor" class="tf-input" list="sponsorList" placeholder="保荐 / 主办机构">
         <input type="date" id="tblFrom" class="tf-date">
         <span class="tf-sep">—</span>
@@ -204,6 +204,6 @@
 <section class="bond-view hidden" id="bondView">
   <iframe id="bondFrame" title="债券审核动态看板" data-src="./bond.html"></iframe>
 </section>
-<script src="./app.js?v=20261116080512"></script>
+<script src="./app.js?v=20261116083503"></script>
 </body>
 </html>

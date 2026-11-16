@@ -27,7 +27,10 @@
   };
   let lastStats = null;
   const state = { gran: 'month', range: '1y', markets: [], types: [], sponsor: '', flow: 'all' };
-  const tbl = { frm: '', to: '', q: '', market: '', board: '', type: '', stage: '', sponsor: '', page: 1, pageSize: 20, total: 0 };
+  const tbl = {
+    frm: '', to: '', q: '', markets: [], boards: [], types: [], stages: [],
+    sponsor: '', page: 1, pageSize: 20, total: 0,
+  };
   const charts = {};
   const fmt = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
   const num = (v) => (v == null ? 0 : Number(v)).toLocaleString('zh-CN');
@@ -148,9 +151,62 @@
 
   function tblParams() {
     return {
-      frm: tbl.frm, to: tbl.to, markets: tbl.market, types: tbl.type,
-      board: tbl.board, stage: tbl.stage, sponsor: tbl.sponsor, q: tbl.q,
+      frm: tbl.frm, to: tbl.to, markets: tbl.markets.join(','), types: tbl.types.join(','),
+      board: tbl.boards.join(','), stage: tbl.stages.join(','), sponsor: tbl.sponsor, q: tbl.q,
     };
+  }
+
+  /* ---------- 多选下拉 ---------- */
+  const MS = {};
+  function renderMulti(key) {
+    const m = MS[key];
+    const picked = [...m.set];
+    const text = picked.length === 0 ? m.placeholder
+      : (picked.length === 1 ? (m.options.find((o) => o.v === picked[0]) || {}).t || picked[0] : `已选 ${picked.length} 项`);
+    const title = picked.map((v) => (m.options.find((o) => o.v === v) || {}).t || v).join('、');
+    const opts = m.options.map((o) => (
+      `<label class="ms-opt"><input type="checkbox" value="${esc(o.v)}"${m.set.has(o.v) ? ' checked' : ''}><span>${esc(o.t)}</span></label>`
+    )).join('');
+    m.el.innerHTML = `<button type="button" class="ms-btn${picked.length ? ' active' : ''}" title="${esc(title)}"><span>${esc(text)}</span><i>▼</i></button>
+      <div class="ms-pop"><label class="ms-opt all"><input type="checkbox" data-all${picked.length === 0 ? ' checked' : ''}><span>${esc(m.placeholder.replace('全部', '全部'))}</span></label>${opts}</div>`;
+  }
+
+  function initMulti(key, sel, placeholder, options) {
+    MS[key] = { el: $(sel), placeholder, options, set: new Set() };
+    renderMulti(key);
+  }
+
+  function bindMulti() {
+    if (!Object.keys(MS).length || document.body.dataset.msBound) return;
+    document.body.dataset.msBound = '1';
+    Object.keys(MS).forEach((key) => {
+      const m = MS[key];
+      m.el.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (e.target.closest('.ms-btn')) {
+          const wasOpen = m.el.classList.contains('open');
+          Object.values(MS).forEach((x) => x.el.classList.remove('open'));
+          if (!wasOpen) m.el.classList.add('open');
+          return;
+        }
+        const lab = e.target.closest('.ms-opt');
+        if (!lab) return;
+        if (lab.classList.contains('all')) {
+          m.set.clear();
+        } else {
+          const v = lab.querySelector('input').value;
+          if (m.set.has(v)) m.set.delete(v); else m.set.add(v);
+        }
+        tbl[key] = [...m.set];
+        renderMulti(key);
+        m.el.classList.add('open');
+        tbl.page = 1;
+        loadTable();
+      });
+    });
+    document.addEventListener('click', (e) => {
+      Object.values(MS).forEach((m) => { if (!m.el.contains(e.target)) m.el.classList.remove('open'); });
+    });
   }
 
   /* ---------- meta / chips ---------- */
@@ -167,15 +223,16 @@
       m.markets.map((x) => `<button class="chip" data-market="${x.key}">${esc(x.label)}</button>`).join('');
     $('#typeChips').innerHTML = `<button class="chip all on" data-type="">全部</button>` +
       m.types.map((x) => `<button class="chip" data-type="${x.key}">${esc(x.label)}</button>`).join('');
-    $('#tblMarket').innerHTML = `<option value="">全部市场</option>` +
-      m.markets.map((x) => `<option value="${esc(x.key)}">${esc(x.label)}</option>`).join('');
-    $('#tblType').innerHTML = `<option value="">全部类型</option>` +
-      m.types.map((x) => `<option value="${esc(x.key)}">${esc(x.label)}</option>`).join('');
-    $('#tblStage').innerHTML = `<option value="">全部阶段</option>` +
-      stages.map((x) => `<option value="${esc(x.key)}">${esc(x.label)}</option>`).join('');
-    $('#tblBoard').innerHTML = `<option value="">全部板块</option>` +
-      ['主板', '科创板', '创业板', '北交所', '新三板']
-        .map((b) => `<option value="${b}">${b}</option>`).join('');
+    const prevSel = (k) => (MS[k] ? [...MS[k].set] : []);
+    initMulti('markets', '#msMarket', '全部市场', m.markets.map((x) => ({ v: x.key, t: x.label })));
+    initMulti('boards', '#msBoard', '全部板块',
+      ['主板', '科创板', '创业板', '北交所', '新三板'].map((b) => ({ v: b, t: b })));
+    initMulti('types', '#msType', '全部类型', m.types.map((x) => ({ v: x.key, t: x.label })));
+    initMulti('stages', '#msStage', '全部阶段', stages.map((x) => ({ v: x.key, t: x.label })));
+    ['markets', 'boards', 'types', 'stages'].forEach((k) => {
+      prevSel(k).forEach((v) => MS[k].set.add(v));
+      renderMulti(k);
+    });
     $('#sponsorList').innerHTML = (m.sponsors || []).slice(0, 400).map((s) => `<option value="${esc(s)}">`).join('');
 
     $('#syncChips').innerHTML = (m.sync || []).filter((s) => s.source !== 'csrc_eid').map((s) => {
@@ -185,6 +242,7 @@
 
     const d = new Date();
     $('#today').textContent = `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日 · 数据截至 ${m.range && m.range.to ? m.range.to : '—'}`;
+    bindMulti();
     return m;
   }
 
@@ -774,17 +832,15 @@
       clearTimeout(tblSpTimer);
       tblSpTimer = setTimeout(() => { tbl.sponsor = e.target.value.trim(); tblReload(); }, 400);
     });
-    [['#tblMarket', 'market'], ['#tblType', 'type'], ['#tblStage', 'stage'], ['#tblBoard', 'board']]
-      .forEach(([sel, key]) => {
-        $(sel).addEventListener('change', (e) => { tbl[key] = e.target.value; tblReload(); });
-      });
+    bindMulti();
     [['#tblFrom', 'frm'], ['#tblTo', 'to']].forEach(([sel, key]) => {
       $(sel).addEventListener('change', (e) => { tbl[key] = e.target.value; tblReload(); });
     });
     $('#tblReset').addEventListener('click', () => {
-      Object.assign(tbl, { frm: '', to: '', q: '', market: '', board: '', type: '', stage: '', sponsor: '', page: 1 });
+      Object.assign(tbl, { frm: '', to: '', q: '', sponsor: '', page: 1 });
+      tbl.markets = []; tbl.boards = []; tbl.types = []; tbl.stages = [];
       ['#tblQ', '#tblSponsor', '#tblFrom', '#tblTo'].forEach((s) => { $(s).value = ''; });
-      ['#tblMarket', '#tblBoard', '#tblType', '#tblStage'].forEach((s) => { $(s).value = ''; });
+      Object.keys(MS).forEach((k) => { MS[k].set.clear(); renderMulti(k); });
       loadTable();
     });
     $('#pageSizeSel').addEventListener('change', (e) => { tbl.pageSize = Number(e.target.value); tblReload(); });

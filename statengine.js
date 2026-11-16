@@ -368,18 +368,18 @@
     let rows = select(items, split(p.markets), split(p.types), p.sponsor);
     const anyDate = (x) => ['accept_date', 'pass_date', 'register_date', 'terminate_date', 'update_date']
       .some((k) => inRange(x[k], start, end));
-    if (p.stage) {
-      const field = STAGE_DATE[p.stage];
-      if (field) {
-        rows = rows.filter((x) => inRange(
-          field === 'meeting_date' ? (x.meeting_date || x.pass_date) : x[field], start, end));
-      } else {
-        rows = rows.filter((x) => (x.stage || '') === p.stage).filter(anyDate);
-      }
+    const stages = split(p.stage);
+    if (stages.length) {
+      rows = rows.filter((x) => stages.some((s) => {
+        const field = STAGE_DATE[s];
+        if (!field) return (x.stage || '') === s && anyDate(x);
+        return inRange(field === 'meeting_date' ? (x.meeting_date || x.pass_date) : x[field], start, end);
+      }));
     } else {
       rows = rows.filter(anyDate);
     }
-    if (p.board) rows = rows.filter((x) => (x.board || '') === p.board);
+    const boards = split(p.board);
+    if (boards.length) rows = rows.filter((x) => boards.includes(x.board || ''));
     if (p.status) rows = rows.filter((x) => x.status === p.status);
     if (p.q) {
       const ql = p.q.toLowerCase();

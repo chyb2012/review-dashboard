@@ -158,21 +158,35 @@
 
   /* ---------- 多选下拉 ---------- */
   const MS = {};
+  function optionHtml(m, o) {
+    return `<label class="ms-opt"><input type="checkbox" value="${esc(o.v)}"${m.set.has(o.v) ? ' checked' : ''}><span>${esc(o.t)}</span></label>`;
+  }
+
+  function listHtml(m) {
+    const kw = (m.keyword || '').trim().toLowerCase();
+    const opts = kw
+      ? m.options.filter((o) => String(o.t).toLowerCase().includes(kw) || String(o.v).toLowerCase().includes(kw))
+      : m.options;
+    if (!opts.length) return '<div class="ms-empty">无匹配选项</div>';
+    return opts.map((o) => optionHtml(m, o)).join('');
+  }
+
   function renderMulti(key) {
     const m = MS[key];
     const picked = [...m.set];
     const text = picked.length === 0 ? m.placeholder
       : (picked.length === 1 ? (m.options.find((o) => o.v === picked[0]) || {}).t || picked[0] : `已选 ${picked.length} 项`);
     const title = picked.map((v) => (m.options.find((o) => o.v === v) || {}).t || v).join('、');
-    const opts = m.options.map((o) => (
-      `<label class="ms-opt"><input type="checkbox" value="${esc(o.v)}"${m.set.has(o.v) ? ' checked' : ''}><span>${esc(o.t)}</span></label>`
-    )).join('');
     m.el.innerHTML = `<button type="button" class="ms-btn${picked.length ? ' active' : ''}" title="${esc(title)}"><span>${esc(text)}</span><i>▼</i></button>
-      <div class="ms-pop"><label class="ms-opt all"><input type="checkbox" data-all${picked.length === 0 ? ' checked' : ''}><span>${esc(m.placeholder.replace('全部', '全部'))}</span></label>${opts}</div>`;
+      <div class="ms-pop">
+        <input class="ms-search" placeholder="搜索选项" value="${esc(m.keyword || '')}">
+        <label class="ms-opt all"><input type="checkbox" data-all${picked.length === 0 ? ' checked' : ''}><span>${esc(m.placeholder)}</span></label>
+        <div class="ms-list">${listHtml(m)}</div>
+      </div>`;
   }
 
   function initMulti(key, sel, placeholder, options) {
-    MS[key] = { el: $(sel), placeholder, options, set: new Set() };
+    MS[key] = { el: $(sel), placeholder, options, set: new Set(), keyword: '' };
     renderMulti(key);
   }
 
@@ -186,7 +200,11 @@
         if (e.target.closest('.ms-btn')) {
           const wasOpen = m.el.classList.contains('open');
           Object.values(MS).forEach((x) => x.el.classList.remove('open'));
-          if (!wasOpen) m.el.classList.add('open');
+          if (!wasOpen) {
+            m.el.classList.add('open');
+            const s = m.el.querySelector('.ms-search');
+            if (s) s.focus();
+          }
           return;
         }
         const lab = e.target.closest('.ms-opt');
@@ -200,8 +218,16 @@
         tbl[key] = [...m.set];
         renderMulti(key);
         m.el.classList.add('open');
+        const s = m.el.querySelector('.ms-search');
+        if (s && m.keyword) { s.focus(); s.setSelectionRange(s.value.length, s.value.length); }
         tbl.page = 1;
         loadTable();
+      });
+      m.el.addEventListener('input', (e) => {
+        if (!e.target.classList.contains('ms-search')) return;
+        m.keyword = e.target.value;
+        const list = m.el.querySelector('.ms-list');
+        if (list) list.innerHTML = listHtml(m);
       });
     });
     document.addEventListener('click', (e) => {
@@ -848,7 +874,7 @@
       Object.assign(tbl, { frm: '', to: '', q: '', sponsor: '', page: 1 });
       tbl.markets = []; tbl.boards = []; tbl.types = []; tbl.stages = [];
       ['#tblQ', '#tblSponsor', '#tblFrom', '#tblTo'].forEach((s) => { $(s).value = ''; });
-      Object.keys(MS).forEach((k) => { MS[k].set.clear(); renderMulti(k); });
+      Object.keys(MS).forEach((k) => { MS[k].set.clear(); MS[k].keyword = ''; renderMulti(k); });
       loadTable();
     });
     $('#pageSizeSel').addEventListener('change', (e) => { tbl.pageSize = Number(e.target.value); tblReload(); });

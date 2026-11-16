@@ -465,6 +465,7 @@
     const items = [
       ['市场 / 板块', `${label('market', p.market)} · ${p.board || '—'}`],
       ['项目类型', label('type', p.type)],
+      ...(p.type === 'REFINANCE' && ex['再融资类型'] ? [['再融资类型', ex['再融资类型']]] : []),
       ['审核阶段', p.stage || '—'],
       ['原始状态', p.status_raw || '—'],
       ['证券代码', p.code || '—'],

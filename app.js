@@ -486,7 +486,7 @@
         <tr data-id="${esc(p.id)}">
           <td class="nm" title="${esc(fullName(p))}">${esc(fullName(p) || '—')}${p.pass_date_estimated && p.status === 'PASSED' ? ' <span style="color:#B07A2A">*</span>' : ''}</td>
           <td class="n">${esc(label('market', p.market))} · ${esc(p.board || '—')}</td>
-          <td>${esc(label('type', p.type))}</td>
+          <td title="${esc(p.ref_type || label('type', p.type))}">${esc(p.ref_type || label('type', p.type))}</td>
           <td>${stagePill(p.stage, p.status_raw)}</td>
           <td class="n">${esc(p.sponsor_short || '—')}</td>
           <td class="n">${esc(p.accept_date || '—')}</td>

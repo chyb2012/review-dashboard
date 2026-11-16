@@ -227,7 +227,15 @@
     initMulti('markets', '#msMarket', '全部市场', m.markets.map((x) => ({ v: x.key, t: x.label })));
     initMulti('boards', '#msBoard', '全部板块',
       ['主板', '科创板', '创业板', '北交所', '新三板'].map((b) => ({ v: b, t: b })));
-    initMulti('types', '#msType', '全部类型', m.types.map((x) => ({ v: x.key, t: x.label })));
+    const typeCount = {};
+    (STATIC.items || []).forEach((p) => {
+      const k = p.ref_type || label('type', p.type);
+      if (k) typeCount[k] = (typeCount[k] || 0) + 1;
+    });
+    const typeOpts = Object.keys(typeCount).length
+      ? Object.keys(typeCount).sort((a, b) => typeCount[b] - typeCount[a] || a.localeCompare(b)).map((t) => ({ v: t, t }))
+      : m.types.map((x) => ({ v: x.label, t: x.label }));
+    initMulti('types', '#msType', '全部类型', typeOpts);
     initMulti('stages', '#msStage', '全部阶段', stages.map((x) => ({ v: x.key, t: x.label })));
     ['markets', 'boards', 'types', 'stages'].forEach((k) => {
       prevSel(k).forEach((v) => MS[k].set.add(v));

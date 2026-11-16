@@ -362,10 +362,16 @@
     '终止': 'terminate_date', '已启动发行': 'issue_date', '已上市': 'list_date',
   };
 
+  const TYPE_LABELS = { IPO: 'IPO', REFINANCE: '再融资', MA: '并购重组', NEEQ_LISTING: '推荐挂牌' };
+
   function filterRows(items, params) {
     const p = params || {};
     const [start, end] = normalizeRange(p.frm, p.to);
-    let rows = select(items, split(p.markets), split(p.types), p.sponsor);
+    let rows = select(items, split(p.markets), [], p.sponsor);
+    const typeLabels = split(p.types);
+    if (typeLabels.length) {
+      rows = rows.filter((x) => typeLabels.includes(x.ref_type || TYPE_LABELS[x.type] || x.type));
+    }
     const anyDate = (x) => ['accept_date', 'pass_date', 'register_date', 'terminate_date', 'update_date']
       .some((k) => inRange(x[k], start, end));
     const stages = split(p.stage);

@@ -27,10 +27,7 @@
   };
   let lastStats = null;
   const state = { gran: 'month', range: '1y', markets: [], types: [], sponsor: '', flow: 'all' };
-  const tbl = {
-    frm: '', to: '', q: '', markets: [], boards: [], types: [], stages: [],
-    sponsor: '', page: 1, pageSize: 20, total: 0,
-  };
+  const tbl = { frm: '', to: '', q: '', market: '', board: '', type: '', stage: '', sponsor: '', page: 1, pageSize: 20, total: 0 };
   const charts = {};
   const fmt = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
   const num = (v) => (v == null ? 0 : Number(v)).toLocaleString('zh-CN');
@@ -108,6 +105,12 @@
     STATIC.meta = meta;
     STATIC.profileIds = new Set(profIds || []);
     STATIC.docIds = new Set(docIds || []);
+    const btn = $('#refreshBtn');
+    if (btn) {
+      btn.disabled = true;
+      btn.textContent = '数据每日自动更新';
+      btn.title = '本页为静态站点，数据由定时任务更新';
+    }
   }
 
   const fullName = (p) => {
@@ -151,88 +154,9 @@
 
   function tblParams() {
     return {
-      frm: tbl.frm, to: tbl.to, markets: tbl.markets.join(','), types: tbl.types.join(','),
-      board: tbl.boards.join(','), stage: tbl.stages.join(','), sponsor: tbl.sponsor, q: tbl.q,
+      frm: tbl.frm, to: tbl.to, markets: tbl.market, types: tbl.type,
+      board: tbl.board, stage: tbl.stage, sponsor: tbl.sponsor, q: tbl.q,
     };
-  }
-
-  /* ---------- 多选下拉 ---------- */
-  const MS = {};
-  function optionHtml(m, o) {
-    return `<label class="ms-opt"><input type="checkbox" value="${esc(o.v)}"${m.set.has(o.v) ? ' checked' : ''}><span>${esc(o.t)}</span></label>`;
-  }
-
-  function listHtml(m) {
-    const kw = (m.keyword || '').trim().toLowerCase();
-    const opts = kw
-      ? m.options.filter((o) => String(o.t).toLowerCase().includes(kw) || String(o.v).toLowerCase().includes(kw))
-      : m.options;
-    if (!opts.length) return '<div class="ms-empty">无匹配选项</div>';
-    return opts.map((o) => optionHtml(m, o)).join('');
-  }
-
-  function renderMulti(key) {
-    const m = MS[key];
-    const picked = [...m.set];
-    const text = picked.length === 0 ? m.placeholder
-      : (picked.length === 1 ? (m.options.find((o) => o.v === picked[0]) || {}).t || picked[0] : `已选 ${picked.length} 项`);
-    const title = picked.map((v) => (m.options.find((o) => o.v === v) || {}).t || v).join('、');
-    m.el.innerHTML = `<button type="button" class="ms-btn${picked.length ? ' active' : ''}" title="${esc(title)}"><span>${esc(text)}</span><i>▼</i></button>
-      <div class="ms-pop">
-        <input class="ms-search" placeholder="搜索选项" value="${esc(m.keyword || '')}">
-        <label class="ms-opt all"><input type="checkbox" data-all${picked.length === 0 ? ' checked' : ''}><span>${esc(m.placeholder)}</span></label>
-        <div class="ms-list">${listHtml(m)}</div>
-      </div>`;
-  }
-
-  function initMulti(key, sel, placeholder, options) {
-    MS[key] = { el: $(sel), placeholder, options, set: new Set(), keyword: '' };
-    renderMulti(key);
-  }
-
-  function bindMulti() {
-    if (!Object.keys(MS).length || document.body.dataset.msBound) return;
-    document.body.dataset.msBound = '1';
-    Object.keys(MS).forEach((key) => {
-      const m = MS[key];
-      m.el.addEventListener('click', (e) => {
-        e.stopPropagation();
-        if (e.target.closest('.ms-btn')) {
-          const wasOpen = m.el.classList.contains('open');
-          Object.values(MS).forEach((x) => x.el.classList.remove('open'));
-          if (!wasOpen) {
-            m.el.classList.add('open');
-            const s = m.el.querySelector('.ms-search');
-            if (s) s.focus();
-          }
-          return;
-        }
-        const lab = e.target.closest('.ms-opt');
-        if (!lab) return;
-        if (lab.classList.contains('all')) {
-          m.set.clear();
-        } else {
-          const v = lab.querySelector('input').value;
-          if (m.set.has(v)) m.set.delete(v); else m.set.add(v);
-        }
-        tbl[key] = [...m.set];
-        renderMulti(key);
-        m.el.classList.add('open');
-        const s = m.el.querySelector('.ms-search');
-        if (s && m.keyword) { s.focus(); s.setSelectionRange(s.value.length, s.value.length); }
-        tbl.page = 1;
-        loadTable();
-      });
-      m.el.addEventListener('input', (e) => {
-        if (!e.target.classList.contains('ms-search')) return;
-        m.keyword = e.target.value;
-        const list = m.el.querySelector('.ms-list');
-        if (list) list.innerHTML = listHtml(m);
-      });
-    });
-    document.addEventListener('click', (e) => {
-      Object.values(MS).forEach((m) => { if (!m.el.contains(e.target)) m.el.classList.remove('open'); });
-    });
   }
 
   /* ---------- meta / chips ---------- */
@@ -249,34 +173,24 @@
       m.markets.map((x) => `<button class="chip" data-market="${x.key}">${esc(x.label)}</button>`).join('');
     $('#typeChips').innerHTML = `<button class="chip all on" data-type="">全部</button>` +
       m.types.map((x) => `<button class="chip" data-type="${x.key}">${esc(x.label)}</button>`).join('');
-    const prevSel = (k) => (MS[k] ? [...MS[k].set] : []);
-    initMulti('markets', '#msMarket', '全部市场', m.markets.map((x) => ({ v: x.key, t: x.label })));
-    initMulti('boards', '#msBoard', '全部板块',
-      ['主板', '科创板', '创业板', '北交所', '新三板'].map((b) => ({ v: b, t: b })));
-    const typeCount = {};
-    (STATIC.items || []).forEach((p) => {
-      const k = p.ref_type || label('type', p.type);
-      if (k) typeCount[k] = (typeCount[k] || 0) + 1;
-    });
-    const typeOpts = Object.keys(typeCount).length
-      ? Object.keys(typeCount).sort((a, b) => typeCount[b] - typeCount[a] || a.localeCompare(b)).map((t) => ({ v: t, t }))
-      : m.types.map((x) => ({ v: x.label, t: x.label }));
-    initMulti('types', '#msType', '全部类型', typeOpts);
-    initMulti('stages', '#msStage', '全部阶段', stages.map((x) => ({ v: x.key, t: x.label })));
-    ['markets', 'boards', 'types', 'stages'].forEach((k) => {
-      prevSel(k).forEach((v) => MS[k].set.add(v));
-      renderMulti(k);
-    });
+    $('#tblMarket').innerHTML = `<option value="">全部市场</option>` +
+      m.markets.map((x) => `<option value="${esc(x.key)}">${esc(x.label)}</option>`).join('');
+    $('#tblType').innerHTML = `<option value="">全部类型</option>` +
+      m.types.map((x) => `<option value="${esc(x.key)}">${esc(x.label)}</option>`).join('');
+    $('#tblStage').innerHTML = `<option value="">全部阶段</option>` +
+      stages.map((x) => `<option value="${esc(x.key)}">${esc(x.label)}</option>`).join('');
+    $('#tblBoard').innerHTML = `<option value="">全部板块</option>` +
+      ['主板', '科创板', '创业板', '北交所', '新三板']
+        .map((b) => `<option value="${b}">${b}</option>`).join('');
     $('#sponsorList').innerHTML = (m.sponsors || []).slice(0, 400).map((s) => `<option value="${esc(s)}">`).join('');
 
-    $('#syncChips').innerHTML = (m.sync || []).filter((s) => s.source !== 'csrc_eid').map((s) => {
+    $('#syncChips').innerHTML = (m.sync || []).map((s) => {
       const name = { sse: '上交所', szse: '深交所', bse: '北交所', neeq: '股转', ipo_issue: '发行上市' }[s.source] || s.source;
       return `<span class="s${s.ok ? '' : ' bad'}">${name} ${s.records ? `<b>${num(s.records)}</b> 条更新` : '无变化'} · ${esc((s.finished_at || '').slice(5, 16))}</span>`;
     }).join('') + `<span class="s">入库 <b>${num(m.total)}</b> 项</span>`;
 
     const d = new Date();
     $('#today').textContent = `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日 · 数据截至 ${m.range && m.range.to ? m.range.to : '—'}`;
-    bindMulti();
     return m;
   }
 
@@ -315,7 +229,7 @@
     ];
     $('#kpis').innerHTML = items.map(([c, t, v, n]) =>
       `<div class="kpi ${c}"><div class="k">${t}</div><div class="v">${num(v)}</div><div class="n">${n}</div></div>`).join('');
-    const note = state.flow === 'all' ? '柱：受理 / 过会 / 取得批文（堆叠）' : `当前：${flowInfo().name}`;
+    const note = state.flow === 'all' ? '柱：受理 / 过会 / 提交注册 / 取得批文（堆叠）' : `当前：${flowInfo().name}`;
     $('#legendNote').textContent = `${note} · ${s.from} — ${s.to} · ${num(s.projectCount)} 个有变动项目`;
   }
 
@@ -329,7 +243,7 @@
   function renderMain(s) {
     const labels = s.series.map((x) => x.label);
     const all = state.flow === 'all';
-    const keys = all ? ['accepted', 'passed', 'registered'] : [state.flow];
+    const keys = all ? ['accepted', 'passed', 'submit', 'registered'] : [state.flow];
     const info = flowInfo();
     const labelStyle = {
       show: false, position: 'top', distance: 4, fontSize: 10, color: '#4B5563',
@@ -520,7 +434,7 @@
         <tr data-id="${esc(p.id)}">
           <td class="nm" title="${esc(fullName(p))}">${esc(fullName(p) || '—')}${p.pass_date_estimated && p.status === 'PASSED' ? ' <span style="color:#B07A2A">*</span>' : ''}</td>
           <td class="n">${esc(label('market', p.market))} · ${esc(p.board || '—')}</td>
-          <td title="${esc(p.ref_type || label('type', p.type))}">${esc(p.ref_type || label('type', p.type))}</td>
+          <td>${esc(label('type', p.type))}</td>
           <td>${stagePill(p.stage, p.status_raw)}</td>
           <td class="n">${esc(p.sponsor_short || '—')}</td>
           <td class="n">${esc(p.accept_date || '—')}</td>
@@ -557,7 +471,6 @@
     const items = [
       ['市场 / 板块', `${label('market', p.market)} · ${p.board || '—'}`],
       ['项目类型', label('type', p.type)],
-      ...(p.type === 'REFINANCE' && ex['再融资类型'] ? [['再融资类型', ex['再融资类型']]] : []),
       ['审核阶段', p.stage || '—'],
       ['原始状态', p.status_raw || '—'],
       ['证券代码', p.code || '—'],
@@ -798,7 +711,6 @@
   /* ---------- events ---------- */
   function bind() {
     const setView = (v) => {
-      $('#reviewHeader').classList.toggle('hidden', v !== 'review');
       $('#filters').classList.toggle('hidden', v !== 'review');
       $('main').classList.toggle('hidden', v !== 'review');
       $('#coachingView').classList.toggle('hidden', v !== 'coaching');
@@ -827,7 +739,7 @@
       state.flow = e.target.value;
       if (!lastStats) return;
       renderMain(lastStats);
-      const note = state.flow === 'all' ? '柱：受理 / 过会 / 取得批文（堆叠）' : `当前：${flowInfo().name}`;
+      const note = state.flow === 'all' ? '柱：受理 / 过会 / 提交注册 / 取得批文（堆叠）' : `当前：${flowInfo().name}`;
       $('#legendNote').textContent = `${note} · ${lastStats.from} — ${lastStats.to} · ${num(lastStats.projectCount)} 个有变动项目`;
     });
     $('#rangeSeg').addEventListener('click', (e) => {
@@ -866,15 +778,17 @@
       clearTimeout(tblSpTimer);
       tblSpTimer = setTimeout(() => { tbl.sponsor = e.target.value.trim(); tblReload(); }, 400);
     });
-    bindMulti();
+    [['#tblMarket', 'market'], ['#tblType', 'type'], ['#tblStage', 'stage'], ['#tblBoard', 'board']]
+      .forEach(([sel, key]) => {
+        $(sel).addEventListener('change', (e) => { tbl[key] = e.target.value; tblReload(); });
+      });
     [['#tblFrom', 'frm'], ['#tblTo', 'to']].forEach(([sel, key]) => {
       $(sel).addEventListener('change', (e) => { tbl[key] = e.target.value; tblReload(); });
     });
     $('#tblReset').addEventListener('click', () => {
-      Object.assign(tbl, { frm: '', to: '', q: '', sponsor: '', page: 1 });
-      tbl.markets = []; tbl.boards = []; tbl.types = []; tbl.stages = [];
+      Object.assign(tbl, { frm: '', to: '', q: '', market: '', board: '', type: '', stage: '', sponsor: '', page: 1 });
       ['#tblQ', '#tblSponsor', '#tblFrom', '#tblTo'].forEach((s) => { $(s).value = ''; });
-      Object.keys(MS).forEach((k) => { MS[k].set.clear(); MS[k].keyword = ''; renderMulti(k); });
+      ['#tblMarket', '#tblBoard', '#tblType', '#tblStage'].forEach((s) => { $(s).value = ''; });
       loadTable();
     });
     $('#pageSizeSel').addEventListener('change', (e) => { tbl.pageSize = Number(e.target.value); tblReload(); });
@@ -942,6 +856,26 @@
       const u = new URL('/api/export', location.origin);
       Object.entries(p).forEach(([k, v]) => { if (v) u.searchParams.set(k, v); });
       location.href = u.toString();
+    });
+    $('#refreshBtn').addEventListener('click', async () => {
+      $('#refreshBtn').disabled = true; $('#refreshBtn').textContent = '同步中…';
+      try {
+        const r = await api('/api/sync', null, { method: 'POST' });
+        if (!r.started) toast(r.message || '已有同步任务在运行');
+        const poll = setInterval(async () => {
+          try {
+            const st = await api('/api/sync/status');
+            if (!st.active) {
+              clearInterval(poll);
+              $('#refreshBtn').disabled = false; $('#refreshBtn').textContent = '刷新数据';
+              await loadMeta(); await load();
+              toast('数据同步完成');
+            }
+          } catch (e) { clearInterval(poll); $('#refreshBtn').disabled = false; $('#refreshBtn').textContent = '刷新数据'; }
+        }, 2000);
+      } catch (e) {
+        $('#refreshBtn').disabled = false; $('#refreshBtn').textContent = '刷新数据'; toast(e.message);
+      }
     });
     window.addEventListener('resize', () => Object.values(charts).forEach((c) => c.resize()));
     document.addEventListener('keydown', (e) => {

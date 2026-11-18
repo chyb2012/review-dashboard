@@ -4,12 +4,18 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>发行上市审核动态 · 沪深北与股转</title>
-<link rel="stylesheet" href="./styles.css?v=20261117032945">
+<link rel="stylesheet" href="./styles.css?v=20261118093949">
 <script src="./vendor/echarts.min.js"></script>
-<script src="./statengine.js?v=20261117032945"></script>
+<script src="./statengine.js?v=20261118093949"></script>
 </head>
 <body data-static="1">
-<header class="masthead">
+<nav class="view-tabs" id="viewTabs">
+  <button class="view-tab on" data-view="review">发行审核动态</button>
+  <button class="view-tab" data-view="coaching">辅导项目看板</button>
+  <button class="view-tab" data-view="bond">债券审核动态</button>
+</nav>
+
+<header class="masthead" id="reviewHeader">
   <div class="mast-left">
     <div class="eyebrow">SSE · SZSE · BSE · NEEQ / REVIEW MONITOR</div>
     <h1>发行上市审核动态</h1>
@@ -19,15 +25,8 @@
     <div class="date" id="today"></div>
     <div class="sync-chips" id="syncChips"></div>
     <a href="./sync.html" style="text-decoration:none;color:#334155;border:1px solid #cbd5e1;background:#fff;border-radius:8px;padding:7px 11px;font-size:13px;white-space:nowrap">数据更新日志</a>
-    <button class="ghost" id="refreshBtn">刷新数据</button>
   </div>
 </header>
-
-<nav class="view-tabs" id="viewTabs">
-  <button class="view-tab on" data-view="review">发行审核动态</button>
-  <button class="view-tab" data-view="coaching">辅导项目看板</button>
-  <button class="view-tab" data-view="bond">债券审核动态</button>
-</nav>
 
 <section class="filters" id="filters">
   <div class="fblock">
@@ -73,7 +72,6 @@
           <option value="all">全部状态（堆叠）</option>
           <option value="accepted">新增受理</option>
           <option value="passed">上市委会议通过</option>
-          <option value="submit">提交注册</option>
           <option value="registered">取得批文</option>
           <option value="reviewing">期末在审</option>
           <option value="pendingReg">期末待注册</option>
@@ -140,10 +138,10 @@
       </div>
       <div class="table-filters" id="tableFilters">
         <input id="tblQ" class="tf-input" placeholder="发行人 / 简称 / 代码">
-        <select id="tblMarket" class="tf-sel"></select>
-        <select id="tblBoard" class="tf-sel"></select>
-        <select id="tblType" class="tf-sel"></select>
-        <select id="tblStage" class="tf-sel"></select>
+        <div class="ms" id="msMarket"></div>
+        <div class="ms" id="msBoard"></div>
+        <div class="ms" id="msType"></div>
+        <div class="ms" id="msStage"></div>
         <input id="tblSponsor" class="tf-input" list="sponsorList" placeholder="保荐 / 主办机构">
         <input type="date" id="tblFrom" class="tf-date">
         <span class="tf-sep">—</span>
@@ -206,6 +204,6 @@
 <section class="bond-view hidden" id="bondView">
   <iframe id="bondFrame" title="债券审核动态看板" data-src="./bond.html"></iframe>
 </section>
-<script src="./app.js?v=20261117032945"></script>
+<script src="./app.js?v=20261118093949"></script>
 </body>
 </html>

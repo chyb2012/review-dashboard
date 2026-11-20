@@ -26,6 +26,7 @@
     terminated: { name: '终止审核', color: '#EF4444' },
   };
   let lastStats = null;
+  let effRange = '1m';
   const state = { gran: 'month', range: '1y', markets: [], types: [], sponsor: '', flow: 'all' };
   const tbl = {
     frm: '', to: '', q: '', markets: [], boards: [], types: [], stages: [],
@@ -140,6 +141,13 @@
     const days = { '1m': 30, '3m': 91, '1y': 365 }[state.range] || 365;
     const start = new Date(end.getTime() - days * 86400000);
     return { frm: fmt(start), to: fmt(end) };
+  }
+
+  function effBounds() {
+    const end = new Date();
+    if (effRange === 'all') return { effFrm: '2000-01-01', effTo: fmt(end) };
+    const days = { '1m': 30, '3m': 91, '1y': 365 }[effRange] || 30;
+    return { effFrm: fmt(new Date(end.getTime() - days * 86400000)), effTo: fmt(end) };
   }
 
   function filters() {
@@ -288,7 +296,7 @@
     const p = filters(false);
     try {
       const [stats, passedTotal] = await Promise.all([
-        api('/api/stats', { ...p, gran: state.gran }),
+        api('/api/stats', { ...p, ...effBounds(), gran: state.gran }),
         api('/api/projects', { ...p, pageSize: 1 }),
       ]);
       if (seq !== loadSeq) return;
@@ -384,7 +392,7 @@
         <td class="num">${num(x.passN)}</td><td class="num">${f(x.passAvg)}</td><td class="num">${f(x.passMed)}</td>
         <td class="num">${num(x.regN)}</td><td class="num">${f(x.regAvg)}</td><td class="num">${f(x.regMed)}</td>
       </tr>`).join('') : '<tr><td colspan="8" class="empty">该期间无完成过会或注册的 IPO 项目</td></tr>';
-    $('#effMeta').textContent = `${s.from} — ${s.to} · 仅 IPO · 按交易所 × 板块`;
+    $('#effMeta').textContent = `${s.effFrom || s.from} — ${s.effTo || s.to} · 仅 IPO · 按交易所 × 板块`;
   }
 
   function renderStatusChart(s) {
@@ -880,6 +888,13 @@
     $('#tblSponsor').addEventListener('input', (e) => {
       clearTimeout(tblSpTimer);
       tblSpTimer = setTimeout(() => { tbl.sponsor = e.target.value.trim(); tblReload(); }, 400);
+    });
+    $('#effSeg').addEventListener('click', (e) => {
+      const b = e.target.closest('button[data-r]');
+      if (!b) return;
+      effRange = b.dataset.r;
+      Array.from($('#effSeg').children).forEach((x) => x.classList.toggle('on', x === b));
+      load();
     });
     bindMulti();
     [['#tblFrom', 'frm'], ['#tblTo', 'to']].forEach(([sel, key]) => {

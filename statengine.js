@@ -263,19 +263,24 @@
       const m = Math.floor(s.length / 2);
       return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2;
     };
+    const effStart = p.effFrm ? (toDate(p.effFrm) || start) : start;
+    const effEnd = p.effTo ? (toDate(p.effTo) || end) : end;
+    const effBase = select(items, split(p.markets), [], p.sponsor).filter((x) => x.type === 'IPO');
     const eff = {};
-    parsed.forEach((x) => {
-      if (x.p.type !== 'IPO') return;
-      const bl = x.p.board || '—';
-      const key = `${x.p.market}|${bl}`;
-      const g = eff[key] || (eff[key] = { market: x.p.market, board: bl, passN: 0, passDays: [], regN: 0, regDays: [] });
-      if (x.pa && x.pa >= start && x.pa <= end) {
+    effBase.forEach((x) => {
+      const pa = toDate(x.pass_date);
+      const a = toDate(x.accept_date);
+      const rg = toDate(x.register_date);
+      const bl = x.board || '—';
+      const key = `${x.market}|${bl}`;
+      const g = eff[key] || (eff[key] = { market: x.market, board: bl, passN: 0, passDays: [], regN: 0, regDays: [] });
+      if (pa && pa >= effStart && pa <= effEnd) {
         g.passN += 1;
-        if (x.a && x.pa >= x.a) g.passDays.push(dayDiff(x.a, x.pa));
+        if (a && pa >= a) g.passDays.push(dayDiff(a, pa));
       }
-      if (x.rg && x.rg >= start && x.rg <= end) {
+      if (rg && rg >= effStart && rg <= effEnd) {
         g.regN += 1;
-        if (x.pa && x.rg >= x.pa) g.regDays.push(dayDiff(x.pa, x.rg));
+        if (pa && rg >= pa) g.regDays.push(dayDiff(pa, rg));
       }
     });
     const efficiency = Object.keys(eff).map((k) => {
@@ -289,6 +294,7 @@
       || BOARD_SEQ.indexOf(a.board) - BOARD_SEQ.indexOf(b.board));
     return {
       from: iso(start), to: iso(end), gran,
+      effFrom: iso(effStart), effTo: iso(effEnd),
       series, kpi, heat: heatData(rows),
       statusBoard: MARKET_ORDER.filter((m) => boardStats[m])
         .map((m) => ({ market: m, stages: boardStats[m] })),

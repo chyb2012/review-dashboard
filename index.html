@@ -4,9 +4,9 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>发行上市审核动态 · 沪深北与股转</title>
-<link rel="stylesheet" href="./styles.css?v=20261120120945">
+<link rel="stylesheet" href="./styles.css?v=20261120140727">
 <script src="./vendor/echarts.min.js"></script>
-<script src="./statengine.js?v=20261120120945"></script>
+<script src="./statengine.js?v=20261120140727"></script>
 </head>
 <body data-static="1">
 <nav class="view-tabs" id="viewTabs">
@@ -126,7 +126,12 @@
     <section class="paper col-12">
       <div class="paper-head">
         <div><span class="eyebrow">PASS &amp; REGISTRATION</span><h2>过会与注册效率</h2></div>
-        <span class="hint" id="effMeta">按交易所 × 板块 · 仅 IPO</span>
+        <div class="eff-head-right">
+          <span class="hint" id="effMeta">按交易所 × 板块 · 仅 IPO</span>
+          <div class="seg small" id="effSeg">
+            <button data-r="1m" class="on">近1月</button><button data-r="3m">近3月</button><button data-r="1y">近1年</button><button data-r="all">全部</button>
+          </div>
+        </div>
       </div>
       <div class="table-wrap">
         <table class="data-table" id="effTable">
@@ -228,6 +233,6 @@
 <section class="bond-view hidden" id="bondView">
   <iframe id="bondFrame" title="债券审核动态看板" data-src="./bond.html"></iframe>
 </section>
-<script src="./app.js?v=20261120120945"></script>
+<script src="./app.js?v=20261120140727"></script>
 </body>
 </html>

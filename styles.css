@@ -90,6 +90,7 @@ main{padding:18px 32px 56px}
 .heat-block+.heat-block{margin-top:4px}
 .heat-cap{font-size:11px;font-weight:600;color:#6B7280;padding-left:2px;margin-bottom:1px}
 .legend-note{font-size:11px;color:#9CA3AF;padding-top:6px}
+.eff-head-right{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
 
 .mix-rows{display:flex;flex-direction:column;gap:11px;padding:8px 0 2px}
 .mix-row{display:grid;grid-template-columns:50px minmax(0,1fr) 52px;align-items:center;gap:10px}

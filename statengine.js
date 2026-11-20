@@ -253,6 +253,40 @@
       boardStats[m] = boardStats[m] || {};
       boardStats[m][at] = (boardStats[m][at] || 0) + 1;
     });
+    /* 过会与注册效率：仅 IPO，按交易所 × 板块 */
+    const BOARD_SEQ = ['主板', '科创板', '创业板', '北交所'];
+    const dayDiff = (a, b) => Math.round((b - a) / 86400000);
+    const avgOf = (v) => (v.length ? v.reduce((s, x) => s + x, 0) / v.length : null);
+    const medOf = (v) => {
+      if (!v.length) return null;
+      const s = [...v].sort((a, b) => a - b);
+      const m = Math.floor(s.length / 2);
+      return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2;
+    };
+    const eff = {};
+    parsed.forEach((x) => {
+      if (x.p.type !== 'IPO') return;
+      const bl = x.p.board || '—';
+      const key = `${x.p.market}|${bl}`;
+      const g = eff[key] || (eff[key] = { market: x.p.market, board: bl, passN: 0, passDays: [], regN: 0, regDays: [] });
+      if (x.pa && x.pa >= start && x.pa <= end) {
+        g.passN += 1;
+        if (x.a && x.pa >= x.a) g.passDays.push(dayDiff(x.a, x.pa));
+      }
+      if (x.rg && x.rg >= start && x.rg <= end) {
+        g.regN += 1;
+        if (x.pa && x.rg >= x.pa) g.regDays.push(dayDiff(x.pa, x.rg));
+      }
+    });
+    const efficiency = Object.keys(eff).map((k) => {
+      const g = eff[k];
+      return {
+        market: g.market, board: g.board,
+        passN: g.passN, passAvg: avgOf(g.passDays), passMed: medOf(g.passDays),
+        regN: g.regN, regAvg: avgOf(g.regDays), regMed: medOf(g.regDays),
+      };
+    }).sort((a, b) => MARKET_ORDER.indexOf(a.market) - MARKET_ORDER.indexOf(b.market)
+      || BOARD_SEQ.indexOf(a.board) - BOARD_SEQ.indexOf(b.board));
     return {
       from: iso(start), to: iso(end), gran,
       series, kpi, heat: heatData(rows),
@@ -263,6 +297,7 @@
       marketMix: mix(marketMix, MARKET_ORDER),
       typeMix: mix(typeMix, TYPE_ORDER),
       statusMix: mix(statusMix, STATUS_ORDER),
+      efficiency,
       projectCount: sel.length,
     };
   }

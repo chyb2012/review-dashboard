@@ -298,6 +298,7 @@
       renderStatusChart(stats);
       renderBoardMix(stats);
       renderHeatmap(stats);
+      renderEfficiency(stats);
       renderSponsorBoard();
       state.total = passedTotal.total;
     } catch (e) { toast(e.message); }
@@ -370,6 +371,20 @@
       series,
     };
     charts.main.setOption(opt, true);
+  }
+
+  function renderEfficiency(s) {
+    const tbody = $('#effTable tbody');
+    if (!tbody) return;
+    const rows = s.efficiency || [];
+    const f = (v) => (v == null ? '—' : Number(v).toFixed(1));
+    tbody.innerHTML = rows.length ? rows.map((x) => `<tr>
+        <td>${esc(label('market', x.market))}</td>
+        <td>${esc(x.board || '—')}</td>
+        <td class="num">${num(x.passN)}</td><td class="num">${f(x.passAvg)}</td><td class="num">${f(x.passMed)}</td>
+        <td class="num">${num(x.regN)}</td><td class="num">${f(x.regAvg)}</td><td class="num">${f(x.regMed)}</td>
+      </tr>`).join('') : '<tr><td colspan="8" class="empty">该期间无完成过会或注册的 IPO 项目</td></tr>';
+    $('#effMeta').textContent = `${s.from} — ${s.to} · 仅 IPO · 按交易所 × 板块`;
   }
 
   function renderStatusChart(s) {

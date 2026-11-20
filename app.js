@@ -146,6 +146,12 @@
   function effBounds() {
     const end = new Date();
     if (effRange === 'all') return { effFrm: '2000-01-01', effTo: fmt(end) };
+    if (effRange === 'custom') {
+      const f = $('#effFrom').value;
+      const t = $('#effTo').value;
+      if (f && t) return { effFrm: f, effTo: t };
+      return { effFrm: fmt(new Date(end.getTime() - 30 * 86400000)), effTo: fmt(end) };
+    }
     const days = { '1m': 30, '3m': 91, '1y': 365 }[effRange] || 30;
     return { effFrm: fmt(new Date(end.getTime() - days * 86400000)), effTo: fmt(end) };
   }
@@ -894,7 +900,20 @@
       if (!b) return;
       effRange = b.dataset.r;
       Array.from($('#effSeg').children).forEach((x) => x.classList.toggle('on', x === b));
+      const custom = effRange === 'custom';
+      ['#effFrom', '#effSep', '#effTo'].forEach((s) => $(s).classList.toggle('hidden', !custom));
+      if (custom) {
+        if (!$('#effFrom').value || !$('#effTo').value) {
+          const bd = effBounds();
+          $('#effFrom').value = fmt(new Date(new Date().getTime() - 30 * 86400000));
+          $('#effTo').value = bd.effTo;
+        }
+        $('#effFrom').focus();
+      }
       load();
+    });
+    ['#effFrom', '#effTo'].forEach((s) => {
+      $(s).addEventListener('change', () => { effRange = 'custom'; load(); });
     });
     bindMulti();
     [['#tblFrom', 'frm'], ['#tblTo', 'to']].forEach(([sel, key]) => {

@@ -228,6 +228,8 @@ td.nm{font-weight:600;max-width:260px;overflow:hidden;text-overflow:ellipsis;whi
 .data-table tbody tr:hover{background:#FBF7F8}
 .data-table td.name{font-weight:600;color:#111827;white-space:normal;line-height:1.55}
 .data-table td.num{text-align:right;font-variant-numeric:tabular-nums;font-family:"SF Mono","JetBrains Mono",Consolas,monospace;font-size:11.5px;white-space:nowrap;color:#1F2937}
+.data-table td.eff-link{cursor:pointer;color:var(--brand);text-decoration:underline dotted;text-underline-offset:3px}
+.data-table td.eff-link:hover{background:rgba(154,24,49,.07)}
 .group-block{margin-bottom:18px}
 .group-block:last-child{margin-bottom:0}
 .group-title{display:inline-block;font-size:11.5px;font-weight:600;color:#6B7280;background:#F8F9FB;border:1px solid #EEF0F3;padding:4px 10px;border-radius:6px;margin-bottom:8px}

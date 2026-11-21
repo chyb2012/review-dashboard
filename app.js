@@ -16,6 +16,12 @@
     '上交所主板': '#1D4ED8', '上交所科创板': '#8B5CF6', '深交所主板': '#0EA5E9',
     '深交所创业板': '#F59E0B', '北交所': '#10B981', '新三板': '#94A3B8',
   };
+  const BOARD_FULL = {
+    'SSE|主板': '上交所主板', 'SSE|科创板': '上交所科创板',
+    'SZSE|主板': '深交所主板', 'SZSE|创业板': '深交所创业板',
+    'BSE|北交所': '北交所', 'NEEQ|新三板': '新三板',
+  };
+  const boardFull = (market, board) => BOARD_FULL[`${market}|${board}`] || board || '';
   const FLOW_DEFS = {
     accepted: { name: '新增受理', color: '#3B82F6' },
     passed: { name: '上市委会议通过', color: '#8B5CF6' },
@@ -395,11 +401,14 @@
     if (!tbody) return;
     const rows = s.efficiency || [];
     const f = (v) => (v == null ? '—' : Number(v).toFixed(1));
+    const cell = (x, n, basis, text) => (n > 0
+      ? `<td class="num eff-link" data-basis="${basis}" data-market="${esc(x.market)}" data-board="${esc(boardFull(x.market, x.board))}" title="点击查看项目明细">${text}</td>`
+      : `<td class="num">${text}</td>`);
     tbody.innerHTML = rows.length ? rows.map((x) => `<tr>
         <td>${esc(label('market', x.market))}</td>
         <td>${esc(x.board || '—')}</td>
-        <td class="num">${num(x.passN)}</td><td class="num">${f(x.passAvg)}</td><td class="num">${f(x.passMed)}</td>
-        <td class="num">${num(x.regN)}</td><td class="num">${f(x.regAvg)}</td><td class="num">${f(x.regMed)}</td>
+        ${cell(x, x.passN, 'passed', num(x.passN))}<td class="num">${f(x.passAvg)}</td><td class="num">${f(x.passMed)}</td>
+        ${cell(x, x.regN, 'registered', num(x.regN))}<td class="num">${f(x.regAvg)}</td><td class="num">${f(x.regMed)}</td>
       </tr>`).join('') : '<tr><td colspan="8" class="empty">该期间无完成过会或注册的 IPO 项目</td></tr>';
     $('#effMeta').textContent = `独立区间：${s.effFrom || s.from} — ${s.effTo || s.to} · 仅 IPO · 按交易所 × 板块`;
   }
@@ -656,6 +665,7 @@
     const params = { ...f, basis: opts.basis, board: opts.board || '', stage: opts.stage || '', frm, to };
     if (opts.sponsor) params.sponsor = opts.sponsor;
     if (opts.markets != null) params.markets = opts.markets;
+    if (opts.types != null) params.types = opts.types;
     $('#boardTitle').textContent = opts.title;
     $('#boardSub').textContent = '加载中…';
     $('#boardBody').innerHTML = '';
@@ -672,10 +682,11 @@
       const field = BASIS_FIELD[opts.basis] || 'update_date';
       const dateCol = BASIS_DATE_LABEL[opts.basis] || '更新';
       $('#boardBody').innerHTML = `<table class="data-table board-table"><thead><tr>
-        <th>发行人</th><th>类型</th><th>审核阶段</th><th>保荐机构</th>
+        <th>发行人</th><th>市场 / 板块</th><th>类型</th><th>审核阶段</th><th>保荐机构</th>
         <th class="num">受理</th><th class="num">${dateCol}</th><th class="num">注册</th>
       </tr></thead><tbody>${d.items.map((x) => `<tr data-id="${esc(x.id)}">
         <td class="name" title="${esc(fullName(x))}">${esc(fullName(x) || '—')}</td>
+        <td class="n">${esc(label('market', x.market))} · ${esc(x.board || '—')}</td>
         <td>${esc(label('type', x.type))}</td>
         <td>${stagePill(x.stage, x.status_raw)}</td>
         <td>${esc(x.sponsor_short || '—')}</td>
@@ -907,6 +918,17 @@
     $('#tblSponsor').addEventListener('input', (e) => {
       clearTimeout(tblSpTimer);
       tblSpTimer = setTimeout(() => { tbl.sponsor = e.target.value.trim(); tblReload(); }, 400);
+    });
+    $('#effTable').addEventListener('click', (e) => {
+      const td = e.target.closest('td[data-basis]');
+      if (!td) return;
+      const b = effBounds();
+      const pass = td.dataset.basis === 'passed';
+      openProjectsModal({
+        title: `${td.dataset.board} · ${pass ? '期间过会' : '期间注册'} · ${b.effFrm} 至 ${b.effTo}`,
+        basis: td.dataset.basis, board: td.dataset.board, frm: b.effFrm, to: b.effTo,
+        markets: td.dataset.market, types: 'IPO',
+      }).catch((x) => toast(x.message));
     });
     $('#effSeg').addEventListener('click', (e) => {
       const b = e.target.closest('button[data-r]');

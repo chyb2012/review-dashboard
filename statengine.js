@@ -3,7 +3,14 @@
   const STAGE_ORDER = ['已受理', '已问询', '已回复', '上市委会议', '补充审核',
     '中止及财报更新', '提交注册', '注册结果', '审核结果', '已启动发行', '已上市', '终止', '其他'];
   const ISSUED_STAGES = ['注册结果', '已发行', '已上市', '已启动发行', '审核结果'];
+  const REGISTERED_STAGES = new Set(['注册结果', '审核结果', '已发行', '已启动发行', '已上市']);
   const IN_REVIEW_STAGES = new Set(['已受理', '已问询', '已回复', '补充审核', '中止及财报更新']);
+  // 阶段已越过“待注册”且更新日期早于统计时点的项目，不再计入期末待注册/在审
+  const finalReached = (x, t) => {
+    const done = REGISTERED_STAGES.has(x.st) || x.st === '终止'
+      || x.sta === 'REGISTERED' || x.sta === 'TERMINATED';
+    return !!(done && x.up && x.up < t);
+  };
   const isCurrent = (end) => {
     const t = new Date(); t.setHours(0, 0, 0, 0);
     return end >= t;
@@ -162,6 +169,8 @@
       if (stage === '注册结果' || stage === '审核结果') return stage;
       if (stage === '已发行' || stage === '已上市') return '已上市';
       if (stage === '已启动发行') return '已启动发行';
+      // 注册日期是“取得批文”的唯一依据：即使阶段字段滞后，也不能再显示为提交注册
+      return '注册结果';
     }
     if (pa && pa < t) {
       if (ISSUED_STAGES.includes(stage)) return stage === '已发行' ? '已上市' : stage;
@@ -184,6 +193,7 @@
       p: x, a: toDate(x.accept_date), inq: toDate(x.inquiry_date), rep: toDate(x.reply_date),
       pa: toDate(x.pass_date), su: toDate(x.submit_date), rg: toDate(x.register_date),
       te: toDate(x.terminate_date), st: x.stage || '其他', sr: x.status_raw || '',
+      sta: x.status || '', up: toDate(x.update_date),
       isd: toDate(x.issue_date), lsd: toDate(x.list_date),
       legacy: String(x.id || '').startsWith('IFIND:'),
     }));
@@ -201,8 +211,8 @@
         if (x.su && x.su >= bStart && x.su < bEnd) submitted += 1;
         if (x.rg && x.rg >= bStart && x.rg < bEnd) registered += 1;
         if (x.te && x.te >= bStart && x.te < bEnd) terminated += 1;
-        if (base && !x.legacy && base < bEnd && !(x.pa && x.pa < bEnd) && !(x.rg && x.rg < bEnd) && !(x.te && x.te < bEnd)) reviewing += 1;
-        if (x.pa && !x.legacy && x.pa < bEnd && !(x.rg && x.rg < bEnd) && !(x.te && x.te < bEnd)) pending += 1;
+        if (base && !x.legacy && base < bEnd && !(x.pa && x.pa < bEnd) && !(x.rg && x.rg < bEnd) && !(x.te && x.te < bEnd) && !finalReached(x, bEnd)) reviewing += 1;
+        if (x.pa && !x.legacy && x.pa < bEnd && !(x.rg && x.rg < bEnd) && !(x.te && x.te < bEnd) && !finalReached(x, bEnd)) pending += 1;
         const at = x.legacy ? null : stageAt(x.st, x.a, x.pa, x.rg, x.te, bEnd, x.isd, x.lsd, x.su, x.sr);
         if (at) stages[at] = (stages[at] || 0) + 1;
       });
@@ -216,7 +226,7 @@
     const reviewingNow = (x) => {
       if (current && !IN_REVIEW_STAGES.has(x.st)) return false;
       const base = x.a || x.inq || x.rep;
-      return !!(base && !x.legacy && base < tEnd && !(x.pa && x.pa < tEnd) && !(x.rg && x.rg < tEnd) && !(x.te && x.te < tEnd));
+      return !!(base && !x.legacy && base < tEnd && !(x.pa && x.pa < tEnd) && !(x.rg && x.rg < tEnd) && !(x.te && x.te < tEnd) && !finalReached(x, tEnd));
     };
     const kpi = {
       accepted: parsed.filter((x) => x.a && x.a >= start && x.a <= end).length,
@@ -225,7 +235,7 @@
       registered: parsed.filter((x) => x.rg && x.rg >= start && x.rg <= end).length,
       terminated: parsed.filter((x) => x.te && x.te >= start && x.te <= end).length,
       reviewing: parsed.filter(reviewingNow).length,
-      pendingReg: parsed.filter((x) => !x.legacy && x.pa && x.pa < tEnd && !(x.rg && x.rg < tEnd) && !(x.te && x.te < tEnd)).length,
+      pendingReg: parsed.filter((x) => !x.legacy && x.pa && x.pa < tEnd && !(x.rg && x.rg < tEnd) && !(x.te && x.te < tEnd) && !finalReached(x, tEnd)).length,
       total: sel.length,
     };
     const marketMix = {}; const typeMix = {}; const statusMix = {};
@@ -376,16 +386,25 @@
         const pa = toDate(x.pass_date);
         const rg = toDate(x.register_date);
         const te = toDate(x.terminate_date);
+        const legacy = String(x.id || '').startsWith('IFIND:');
         if (p.basis === 'reviewing') {
           const base = a || inq || rep;
+          const up = toDate(x.update_date);
+          const done = REGISTERED_STAGES.has(x.stage || '其他') || (x.stage || '') === '终止'
+            || x.status === 'REGISTERED' || x.status === 'TERMINATED';
           const stageOk = !isCurrent(end) || IN_REVIEW_STAGES.has(x.stage || '其他');
-          return !!(stageOk && base && base < tEnd && !(pa && pa < tEnd) && !(rg && rg < tEnd) && !(te && te < tEnd));
+          return !!(stageOk && !legacy && base && base < tEnd && !(pa && pa < tEnd) && !(rg && rg < tEnd) && !(te && te < tEnd)
+            && !(done && up && up < tEnd));
         }
         if (p.basis === 'pendingReg') {
-          return !!(pa && pa < tEnd && !(rg && rg < tEnd) && !(te && te < tEnd));
+          const up = toDate(x.update_date);
+          const done = REGISTERED_STAGES.has(x.stage || '其他') || (x.stage || '') === '终止'
+            || x.status === 'REGISTERED' || x.status === 'TERMINATED';
+          return !!(pa && !legacy && pa < tEnd && !(rg && rg < tEnd) && !(te && te < tEnd)
+            && !(done && up && up < tEnd));
         }
         if (p.basis === 'stage') {
-          return !String(x.id || '').startsWith('IFIND:')
+          return !legacy
             && stageAt(x.stage || '其他', a, pa, rg, te, tEnd,
               toDate(x.issue_date), toDate(x.list_date), toDate(x.submit_date), x.status_raw) === p.stage;
         }

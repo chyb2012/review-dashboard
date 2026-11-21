@@ -1020,7 +1020,9 @@
     charts.heatReg = echarts.init($('#heatRegChart'));
     charts.main.on('click', (p) => {
       if (!lastStats || !p || p.componentType !== 'series') return;
-      const key = state.flow === 'all' ? ['accepted', 'passed', 'submit', 'registered'][p.seriesIndex] : state.flow;
+      // 必须与 renderMain 的 series 顺序一致，否则点击“取得批文”会打开“提交注册”清单
+      const keys = state.flow === 'all' ? ['accepted', 'passed', 'registered'] : [state.flow];
+      const key = keys[p.seriesIndex];
       const b = lastStats.series[p.dataIndex];
       if (!b || !key) return;
       const names = {

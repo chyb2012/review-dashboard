@@ -27,6 +27,7 @@
   };
   let lastStats = null;
   let effRange = '1m';
+  let effMarkets = [];
   const state = { gran: 'month', range: '1y', markets: [], types: [], sponsor: '', flow: 'all' };
   const tbl = {
     frm: '', to: '', q: '', markets: [], boards: [], types: [], stages: [],
@@ -261,6 +262,8 @@
 
     $('#marketChips').innerHTML = `<button class="chip all on" data-market="">全部</button>` +
       m.markets.map((x) => `<button class="chip" data-market="${x.key}">${esc(x.label)}</button>`).join('');
+    $('#effMarketChips').innerHTML = `<button class="chip all on" data-market="">全部</button>` +
+      m.markets.map((x) => `<button class="chip" data-market="${x.key}">${esc(x.label)}</button>`).join('');
     $('#typeChips').innerHTML = `<button class="chip all on" data-type="">全部</button>` +
       m.types.map((x) => `<button class="chip" data-type="${x.key}">${esc(x.label)}</button>`).join('');
     const prevSel = (k) => (MS[k] ? [...MS[k].set] : []);
@@ -302,7 +305,7 @@
     const p = filters(false);
     try {
       const [stats, passedTotal] = await Promise.all([
-        api('/api/stats', { ...p, ...effBounds(), gran: state.gran }),
+        api('/api/stats', { ...p, ...effBounds(), effMarkets: effMarkets.join(','), gran: state.gran }),
         api('/api/projects', { ...p, pageSize: 1 }),
       ]);
       if (seq !== loadSeq) return;
@@ -875,6 +878,16 @@
       else state.markets = state.markets.includes(v) ? state.markets.filter((x) => x !== v) : [...state.markets, v];
       [...$('#marketChips').children].forEach((x) => x.classList.toggle('on', !x.dataset.market ? !state.markets.length : state.markets.includes(x.dataset.market)));
       state.page = 1; load();
+    });
+    $('#effMarketChips').addEventListener('click', (e) => {
+      const b = e.target.closest('.chip'); if (!b) return;
+      const v = b.dataset.market;
+      if (!v) effMarkets = [];
+      else effMarkets = effMarkets.includes(v) ? effMarkets.filter((x) => x !== v) : [...effMarkets, v];
+      [...$('#effMarketChips').children].forEach((x) => {
+        x.classList.toggle('on', !x.dataset.market ? !effMarkets.length : effMarkets.includes(x.dataset.market));
+      });
+      load();
     });
     $('#typeChips').addEventListener('click', (e) => {
       const b = e.target.closest('.chip'); if (!b) return;

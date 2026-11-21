@@ -263,7 +263,7 @@
       boardStats[m] = boardStats[m] || {};
       boardStats[m][at] = (boardStats[m][at] || 0) + 1;
     });
-    /* 过会与注册效率：仅 IPO，按交易所 × 板块 */
+    /* 过会与注册效率：仅 IPO，按交易所 × 板块（独立市场与时间区间） */
     const BOARD_SEQ = ['主板', '科创板', '创业板', '北交所'];
     const dayDiff = (a, b) => Math.round((b - a) / 86400000);
     const avgOf = (v) => (v.length ? v.reduce((s, x) => s + x, 0) / v.length : null);
@@ -275,7 +275,7 @@
     };
     const effStart = p.effFrm ? (toDate(p.effFrm) || start) : start;
     const effEnd = p.effTo ? (toDate(p.effTo) || end) : end;
-    const effBase = select(items, split(p.markets), [], p.sponsor).filter((x) => x.type === 'IPO');
+    const effBase = select(items, split(p.effMarkets), [], p.sponsor).filter((x) => x.type === 'IPO');
     const eff = {};
     effBase.forEach((x) => {
       const pa = toDate(x.pass_date);

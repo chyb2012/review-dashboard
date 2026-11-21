@@ -398,7 +398,7 @@
         <td class="num">${num(x.passN)}</td><td class="num">${f(x.passAvg)}</td><td class="num">${f(x.passMed)}</td>
         <td class="num">${num(x.regN)}</td><td class="num">${f(x.regAvg)}</td><td class="num">${f(x.regMed)}</td>
       </tr>`).join('') : '<tr><td colspan="8" class="empty">该期间无完成过会或注册的 IPO 项目</td></tr>';
-    $('#effMeta').textContent = `${s.effFrom || s.from} — ${s.effTo || s.to} · 仅 IPO · 按交易所 × 板块`;
+    $('#effMeta').textContent = `独立区间：${s.effFrom || s.from} — ${s.effTo || s.to} · 仅 IPO · 按交易所 × 板块`;
   }
 
   function renderStatusChart(s) {

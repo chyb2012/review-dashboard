@@ -4,9 +4,9 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>发行上市审核动态 · 沪深北与股转</title>
-<link rel="stylesheet" href="./styles.css?v=20261121105201">
+<link rel="stylesheet" href="./styles.css?v=20261121111251">
 <script src="./vendor/echarts.min.js"></script>
-<script src="./statengine.js?v=20261121105201"></script>
+<script src="./statengine.js?v=20261121111251"></script>
 </head>
 <body data-static="1">
 <nav class="view-tabs" id="viewTabs">
@@ -127,7 +127,7 @@
       <div class="paper-head">
         <div><span class="eyebrow">PASS &amp; REGISTRATION</span><h2>IPO 过会与注册效率</h2></div>
         <div class="eff-head-right">
-          <span class="hint" id="effMeta">按交易所 × 板块 · 仅 IPO</span>
+          <span class="hint" id="effMeta">独立区间 · 仅 IPO · 按交易所 × 板块</span>
           <div class="seg small" id="effSeg">
             <button data-r="1m" class="on">近1月</button><button data-r="3m">近3月</button><button data-r="1y">近1年</button><button data-r="all">全部</button><button data-r="custom">自定义</button>
           </div>
@@ -152,7 +152,7 @@
           <tbody></tbody>
         </table>
       </div>
-      <div class="legend-note">统计区间内完成过会 / 注册的 IPO 项目；区间开始前已发行的项目不计入。用时为自然日。</div>
+      <div class="legend-note">本表使用独立统计区间（不随顶部时间筛选联动）；统计区间内完成过会 / 注册的 IPO 项目；区间开始前已发行的项目不计入。用时为自然日。</div>
     </section>
 
     <section class="paper col-12">
@@ -236,6 +236,6 @@
 <section class="bond-view hidden" id="bondView">
   <iframe id="bondFrame" title="债券审核动态看板" data-src="./bond.html"></iframe>
 </section>
-<script src="./app.js?v=20261121105201"></script>
+<script src="./app.js?v=20261121111251"></script>
 </body>
 </html>

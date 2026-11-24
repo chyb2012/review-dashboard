@@ -59,6 +59,9 @@
   }
 
   const STATIC = { on: false, items: [], meta: null, extras: null, profileIds: null, docIds: null, docs: null };
+  const PEN_SOURCES = [['ALL', '全部来源'], ['CSRC', '证监会'], ['LOCAL', '派出机构'],
+    ['SSE', '上交所'], ['SZSE', '深交所'], ['BSE', '北交所'], ['NEEQ', '股转']];
+  const penState = { source: 'ALL', cat: '', q: '', page: 1, pageSize: 20, items: [] };
   const slug = (id) => String(id == null ? '' : id).replace(/[^0-9A-Za-z_-]/g, '_');
 
   async function staticApi(path, params) {
@@ -293,7 +296,7 @@
     $('#sponsorList').innerHTML = (m.sponsors || []).slice(0, 400).map((s) => `<option value="${esc(s)}">`).join('');
 
     $('#syncChips').innerHTML = (m.sync || []).filter((s) => s.source !== 'csrc_eid').map((s) => {
-      const name = { sse: '上交所', szse: '深交所', bse: '北交所', neeq: '股转', ipo_issue: '发行上市' }[s.source] || s.source;
+      const name = { sse: '上交所', szse: '深交所', bse: '北交所', neeq: '股转', ipo_issue: '发行上市', penalties: '处罚信息' }[s.source] || s.source;
       return `<span class="s${s.ok ? '' : ' bad'}">${name} ${s.records ? `<b>${num(s.records)}</b> 条更新` : '无变化'} · ${esc((s.finished_at || '').slice(5, 16))}</span>`;
     }).join('') + `<span class="s">入库 <b>${num(m.total)}</b> 项</span>`;
 
@@ -411,6 +414,64 @@
         ${cell(x, x.regN, 'registered', num(x.regN))}<td class="num">${f(x.regAvg)}</td><td class="num">${f(x.regMed)}</td>
       </tr>`).join('') : '<tr><td colspan="8" class="empty">该期间无完成过会或注册的 IPO 项目</td></tr>';
     $('#effMeta').textContent = `独立区间：${s.effFrom || s.from} — ${s.effTo || s.to} · 仅 IPO · 按交易所 × 板块`;
+  }
+
+  async function loadPenalties() {
+    try {
+      let items = [];
+      if (STATIC.on) {
+        const r = await fetch('data/penalties.json', { cache: 'no-store' });
+        items = r.ok ? ((await r.json()).items || []) : [];
+      } else {
+        const d = await api('/api/penalties', { page: 1, pageSize: 50000 });
+        items = d.items || [];
+      }
+      penState.items = items;
+      const cats = [...new Set(items.map((x) => x.category).filter(Boolean))];
+      $('#penCat').innerHTML = '<option value="">全部类别</option>' +
+        cats.map((c) => `<option value="${esc(c)}">${esc(c)}</option>`).join('');
+      penState.page = 1;
+      renderPenalties();
+    } catch (e) {
+      $('#penMeta').textContent = `处罚数据加载失败：${e.message}`;
+    }
+  }
+
+  function penFiltered() {
+    const q = penState.q.trim().toLowerCase();
+    return penState.items.filter((x) => {
+      if (penState.source === 'CSRC' && !(x.source === 'CSRC' && x.agency === '中国证监会')) return false;
+      if (penState.source === 'LOCAL' && !(x.source === 'CSRC' && x.agency !== '中国证监会')) return false;
+      if (['SSE', 'SZSE', 'BSE', 'NEEQ'].includes(penState.source) && x.source !== penState.source) return false;
+      if (penState.cat && x.category !== penState.cat) return false;
+      if (q && ![x.title, x.agency, x.subject, x.doc_no].some((v) => (v || '').toLowerCase().includes(q))) return false;
+      return true;
+    });
+  }
+
+  function renderPenalties() {
+    const rows = penFiltered();
+    const pages = Math.max(1, Math.ceil(rows.length / penState.pageSize));
+    if (penState.page > pages) penState.page = pages;
+    const start = (penState.page - 1) * penState.pageSize;
+    const pageRows = rows.slice(start, start + penState.pageSize);
+    $('#penTable tbody').innerHTML = pageRows.length ? pageRows.map((x) => `<tr>
+        <td class="n">${esc(x.publish_date || '—')}</td>
+        <td class="n">${esc(x.agency || '—')}</td>
+        <td><span class="pen-tag">${esc(x.category || '—')}</span></td>
+        <td class="pen-title">${x.url
+    ? `<a href="${esc(x.url)}" target="_blank" rel="noopener">${esc(x.title || '（无标题）')}</a>`
+    : esc(x.title || '—')}</td>
+        <td class="n">${esc(x.doc_no || '—')}</td>
+        <td class="n">${esc(x.subject || '—')}</td>
+        <td class="num">${x.url ? `<a class="pen-link" href="${esc(x.url)}" target="_blank" rel="noopener">查看</a>` : '—'}</td>
+      </tr>`).join('') : '<tr><td colspan="7" class="empty">当前条件下没有处罚记录</td></tr>';
+    $('#penMeta').textContent = `共 ${num(penState.items.length)} 条 · 当前筛选 ${num(rows.length)} 条`
+      + `${rows.length ? ` · 显示第 ${start + 1}–${Math.min(start + penState.pageSize, rows.length)} 条` : ''}`
+      + ' · 来源：证监会及派出机构、沪深北交易所、股转公司';
+    $('#penPage').textContent = `第 ${penState.page} / ${pages} 页`;
+    $('#penPrev').disabled = penState.page <= 1;
+    $('#penNext').disabled = penState.page >= pages;
   }
 
   function renderStatusChart(s) {
@@ -930,6 +991,37 @@
         markets: td.dataset.market, types: 'IPO',
       }).catch((x) => toast(x.message));
     });
+    $('#penSourceChips').innerHTML = PEN_SOURCES.map(([v, t]) =>
+      `<button class="chip${v === 'ALL' ? ' all on' : ''}" data-src="${v}">${t}</button>`).join('');
+    $('#penSourceChips').addEventListener('click', (e) => {
+      const b = e.target.closest('.chip');
+      if (!b) return;
+      penState.source = b.dataset.src;
+      [...$('#penSourceChips').children].forEach((x) => x.classList.toggle('on', x === b));
+      penState.page = 1;
+      renderPenalties();
+    });
+    $('#penCat').addEventListener('change', (e) => {
+      penState.cat = e.target.value;
+      penState.page = 1;
+      renderPenalties();
+    });
+    let penTimer;
+    $('#penQ').addEventListener('input', (e) => {
+      clearTimeout(penTimer);
+      penTimer = setTimeout(() => {
+        penState.q = e.target.value;
+        penState.page = 1;
+        renderPenalties();
+      }, 300);
+    });
+    $('#penPrev').addEventListener('click', () => {
+      if (penState.page > 1) { penState.page -= 1; renderPenalties(); }
+    });
+    $('#penNext').addEventListener('click', () => {
+      penState.page += 1;
+      renderPenalties();
+    });
     $('#effSeg').addEventListener('click', (e) => {
       const b = e.target.closest('button[data-r]');
       if (!b) return;
@@ -1087,7 +1179,7 @@
       });
     });
     bind();
-    try { await boot(); await loadMeta(); await load(); await loadTable(); } catch (e) { toast(e.message); }
+    try { await boot(); await loadMeta(); await load(); await loadTable(); loadPenalties(); } catch (e) { toast(e.message); }
   }
 
   init();

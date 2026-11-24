@@ -4,9 +4,9 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>发行上市审核动态 · 沪深北与股转</title>
-<link rel="stylesheet" href="./styles.css?v=20261124094305">
+<link rel="stylesheet" href="./styles.css?v=20261124145648">
 <script src="./vendor/echarts.min.js"></script>
-<script src="./statengine.js?v=20261124094305"></script>
+<script src="./statengine.js?v=20261124145648"></script>
 </head>
 <body data-static="1">
 <nav class="view-tabs" id="viewTabs">
@@ -156,6 +156,31 @@
       <div class="legend-note">本表使用独立统计区间（不随顶部时间筛选联动）；统计区间内完成过会 / 注册的 IPO 项目；区间开始前已发行的项目不计入。用时为自然日。</div>
     </section>
 
+    <section class="paper col-12" id="penaltyPanel">
+      <div class="paper-head">
+        <div><span class="eyebrow">ENFORCEMENT</span><h2>行政处罚与监管措施</h2></div>
+        <div class="pen-head">
+          <div class="chips" id="penSourceChips"></div>
+          <select id="penCat" class="mini-sel"><option value="">全部类别</option></select>
+          <input id="penQ" placeholder="搜索标题 / 机构 / 对象">
+        </div>
+      </div>
+      <div class="pen-meta" id="penMeta">加载中…</div>
+      <div class="table-wrap pen-wrap">
+        <table class="data-table" id="penTable">
+          <thead><tr>
+            <th>发布日期</th><th>发文机构</th><th>类别</th><th>标题</th><th>文号</th><th>涉及对象</th><th class="num">原文</th>
+          </tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <div class="pen-pager">
+        <button id="penPrev" class="mini-btn">上一页</button>
+        <span id="penPage">第 1 / 1 页</span>
+        <button id="penNext" class="mini-btn">下一页</button>
+      </div>
+    </section>
+
     <section class="paper col-12">
       <div class="paper-head">
         <div class="table-title">
@@ -237,6 +262,6 @@
 <section class="bond-view hidden" id="bondView">
   <iframe id="bondFrame" title="债券审核动态看板" data-src="./bond.html"></iframe>
 </section>
-<script src="./app.js?v=20261124094305"></script>
+<script src="./app.js?v=20261124145648"></script>
 </body>
 </html>

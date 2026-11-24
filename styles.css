@@ -301,3 +301,18 @@ td.nm{font-weight:600;max-width:260px;overflow:hidden;text-overflow:ellipsis;whi
   .chart-lg{height:300px}
   h1{font-size:20px}
 }
+
+/* 行政处罚与监管措施 */
+.pen-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.pen-head input{width:220px}
+.pen-meta{font-size:12px;color:var(--muted);margin:2px 0 10px;line-height:1.6}
+.pen-wrap{max-height:520px}
+.pen-title{min-width:320px;line-height:1.6}
+.pen-title a{color:#1F2937;text-decoration:none}
+.pen-title a:hover{color:var(--brand);text-decoration:underline}
+.pen-tag{display:inline-block;font-size:11px;padding:2px 8px;border-radius:999px;background:#F3F4F6;color:#4B5563;white-space:nowrap}
+.pen-link{color:var(--brand);text-decoration:none;white-space:nowrap}
+.pen-link:hover{text-decoration:underline}
+.pen-pager{display:flex;justify-content:flex-end;align-items:center;gap:10px;margin-top:10px;font-size:12px;color:var(--muted)}
+.pen-pager button{padding:4px 12px;border:1px solid var(--line);background:var(--paper);border-radius:8px;cursor:pointer;font-size:12px}
+.pen-pager button:disabled{opacity:.4;cursor:default}

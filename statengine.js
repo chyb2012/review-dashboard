@@ -244,12 +244,16 @@
       typeMix[x.p.type] = (typeMix[x.p.type] || 0) + 1;
       statusMix[x.p.status] = (statusMix[x.p.status] || 0) + 1;
     });
-    const passBoard = {}; const reviewBoard = {}; const industryMix = {};
+    const passBoard = {}; const reviewBoard = {}; const industryMix = {}; let neeqExcluded = 0;
     parsed.forEach((x) => {
       if (x.pa && x.pa >= start && x.pa <= end) {
         const k = boardLabel(x.p); passBoard[k] = (passBoard[k] || 0) + 1;
-        const ind = String(x.p.industry || '').trim() || '未披露';
-        industryMix[ind] = (industryMix[ind] || 0) + 1;
+        if (x.p.type === 'NEEQ_LISTING') {
+          neeqExcluded += 1;
+        } else {
+          const ind = String(x.p.industry || '').trim() || '未披露';
+          industryMix[ind] = (industryMix[ind] || 0) + 1;
+        }
       }
       if (reviewingNow(x)) {
         const k = boardLabel(x.p); reviewBoard[k] = (reviewBoard[k] || 0) + 1;
@@ -318,6 +322,8 @@
       passBoardMix: mix(passBoard, BOARD_ORDER),
       industryBoard,
       industryMissing: industryMix['未披露'] || 0,
+      industryMissingTotal: items.filter((x) => !String(x.industry || '').trim()).length,
+      neeqExcluded,
       reviewBoardMix: mix(reviewBoard, BOARD_ORDER),
       marketMix: mix(marketMix, MARKET_ORDER),
       typeMix: mix(typeMix, TYPE_ORDER),

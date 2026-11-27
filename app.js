@@ -326,6 +326,7 @@
       renderHeatmap(stats);
       renderEfficiency(stats);
       renderSponsorBoard();
+      renderIndustryBoard(stats);
       state.total = passedTotal.total;
     } catch (e) { toast(e.message); }
   }
@@ -607,6 +608,24 @@
         <span class="nm" title="${esc(r.sponsor)}">${esc(r.sponsor)}</span>
         <span class="num"><b>${num(r.passed)}</b></span>
         <span class="bar"><i style="width:${Math.max(4, r.passed / max * 100)}%"></i></span>
+      </div>`).join('');
+  }
+
+  function renderIndustryBoard(s) {
+    const box = $('#industryBoard');
+    if (!box) return;
+    const rows = s.industryBoard || [];
+    if (!rows.length) {
+      box.innerHTML = '<div class="sb-empty">选定期间内暂无过会项目</div>';
+      return;
+    }
+    const max = Math.max(...rows.map((r) => r.count), 1);
+    box.innerHTML = rows.map((r, i) => `
+      <div class="sb-row">
+        <span class="rk">${String(i + 1).padStart(2, '0')}</span>
+        <span class="nm" title="${esc(r.industry)}">${esc(r.industry)}</span>
+        <span class="num"><b>${num(r.count)}</b></span>
+        <span class="bar"><i style="width:${Math.max(4, r.count / max * 100)}%"></i></span>
       </div>`).join('');
   }
 

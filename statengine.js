@@ -244,15 +244,21 @@
       typeMix[x.p.type] = (typeMix[x.p.type] || 0) + 1;
       statusMix[x.p.status] = (statusMix[x.p.status] || 0) + 1;
     });
-    const passBoard = {}; const reviewBoard = {};
+    const passBoard = {}; const reviewBoard = {}; const industryMix = {};
     parsed.forEach((x) => {
       if (x.pa && x.pa >= start && x.pa <= end) {
         const k = boardLabel(x.p); passBoard[k] = (passBoard[k] || 0) + 1;
+        const ind = String(x.p.industry || '').trim() || '未披露';
+        if (x.p.type === 'IPO') industryMix[ind] = (industryMix[ind] || 0) + 1;
       }
       if (reviewingNow(x)) {
         const k = boardLabel(x.p); reviewBoard[k] = (reviewBoard[k] || 0) + 1;
       }
     });
+    const industryBoard = Object.keys(industryMix)
+      .map((k) => ({ industry: k, count: industryMix[k] }))
+      .sort((a, b) => (b.count - a.count) || a.industry.localeCompare(b.industry, 'zh'))
+      .slice(0, 20);
     const mix = (src, order) => order.filter((k) => src[k]).map((k) => ({ key: k, value: src[k] }));
     const boardStats = {};
     parsed.forEach((x) => {
@@ -309,6 +315,7 @@
       statusBoard: MARKET_ORDER.filter((m) => boardStats[m])
         .map((m) => ({ market: m, stages: boardStats[m] })),
       passBoardMix: mix(passBoard, BOARD_ORDER),
+      industryBoard,
       reviewBoardMix: mix(reviewBoard, BOARD_ORDER),
       marketMix: mix(marketMix, MARKET_ORDER),
       typeMix: mix(typeMix, TYPE_ORDER),

@@ -616,15 +616,7 @@
     if (!box) return;
     const all = s.industryBoard || [];
     const rows = all.filter((r) => r.industry !== '未披露');
-    const missing = s.industryMissing || 0;
-    const neeq = s.neeqExcluded || 0;
-    const total = s.industryMissingTotal || 0;
-    const parts = [];
-    if (neeq) parts.push(`推荐挂牌企业 ${num(neeq)} 家未纳入排名`);
-    if (missing) parts.push(`另有 ${num(missing)} 个项目行业信息待补充`);
-    parts.push(`<a href="data/industry_missing.csv" download>下载全部待补充清单（${num(total)} 家，含全称/简称）</a>`);
-    parts.push('<a href="data/industry_missing_non_neeq.csv" download>仅非挂牌企业清单</a>');
-    $('#industryMissing').innerHTML = parts.join('；');
+    $('#industryMissing').textContent = '行业分布统计不含推荐挂牌企业';
     if (!rows.length) {
       box.innerHTML = '<div class="sb-empty">选定期间内暂无过会项目</div>';
       return;

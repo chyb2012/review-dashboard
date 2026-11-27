@@ -623,7 +623,7 @@
     }
     const max = Math.max(...rows.map((r) => r.count), 1);
     box.innerHTML = rows.map((r, i) => `
-      <div class="sb-row">
+      <div class="sb-row" data-industry="${esc(r.industry)}">
         <span class="rk">${String(i + 1).padStart(2, '0')}</span>
         <span class="nm" title="${esc(r.industry)}">${esc(r.industry)}</span>
         <span class="num"><b>${num(r.count)}</b></span>
@@ -746,6 +746,7 @@
     const to = opts.to != null ? opts.to : f.to;
     const params = { ...f, basis: opts.basis, board: opts.board || '', stage: opts.stage || '', frm, to };
     if (opts.sponsor) params.sponsor = opts.sponsor;
+    if (opts.industry) params.industry = opts.industry;
     if (opts.markets != null) params.markets = opts.markets;
     if (opts.types != null) params.types = opts.types;
     $('#boardTitle').textContent = opts.title;
@@ -1084,6 +1085,12 @@
       const row = e.target.closest('.sb-row'); if (!row) return;
       const s = row.dataset.sponsor;
       openProjectsModal({ title: `${s} · 过会项目`, basis: 'passed', sponsor: s })
+        .catch((x) => toast(x.message));
+    });
+    $('#industryBoard').addEventListener('click', (e) => {
+      const row = e.target.closest('.sb-row'); if (!row) return;
+      const ind = row.dataset.industry;
+      openProjectsModal({ title: `${ind} · 过会项目`, basis: 'passed', industry: ind })
         .catch((x) => toast(x.message));
     });
     ['#statusChart', '#boardMix'].forEach((sel) => {

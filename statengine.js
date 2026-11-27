@@ -382,6 +382,10 @@
     const [start, end] = normalizeRange(p.frm, p.to);
     let rows = select(items, split(p.markets), split(p.types), p.sponsor);
     if (p.board) rows = rows.filter((x) => boardLabel(x) === p.board);
+    if (p.industry) {
+      rows = rows.filter((x) => x.type !== 'NEEQ_LISTING'
+        && String(x.industry || '').trim() === p.industry);
+    }
     const tEnd = addDays(end, 1);
     const fields = {
       accepted: 'accept_date', passed: 'pass_date', submit: 'submit_date',

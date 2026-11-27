@@ -87,6 +87,9 @@ main{padding:18px 32px 56px}
 .side-panel .mini{padding-top:14px;border-top:1px solid #F1F2F5}
 .side-panel .mini:first-child{border-top:0;padding-top:0}
 .chart-lg{height:348px}.chart-sm{height:138px}.chart-md{height:300px}.chart-heat{height:166px}.chart-xs{height:118px}
+.heat-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.heat-grid .heat-block+.heat-block{margin-top:0}
+@media (max-width:900px){.heat-grid{grid-template-columns:1fr}}
 .heat-block+.heat-block{margin-top:4px}
 .heat-cap{font-size:11px;font-weight:600;color:#6B7280;padding-left:2px;margin-bottom:1px}
 .legend-note{font-size:11px;color:#9CA3AF;padding-top:6px}
@@ -316,3 +319,12 @@ td.nm{font-weight:600;max-width:260px;overflow:hidden;text-overflow:ellipsis;whi
 .pen-pager{display:flex;justify-content:flex-end;align-items:center;gap:10px;margin-top:10px;font-size:12px;color:var(--muted)}
 .pen-pager button{padding:4px 12px;border:1px solid var(--line);background:var(--paper);border-radius:8px;cursor:pointer;font-size:12px}
 .pen-pager button:disabled{opacity:.4;cursor:default}
+
+/* 排行榜与行业分布在中等屏幕保持并排 */
+@media(max-width:1180px){
+  .pair-left{grid-column:span 7}
+  .pair-right{grid-column:span 5}
+}
+@media(max-width:720px){
+  .pair-left,.pair-right{grid-column:span 12}
+}

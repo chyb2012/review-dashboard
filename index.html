@@ -4,9 +4,9 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>发行上市审核动态 · 沪深北与股转</title>
-<link rel="stylesheet" href="./styles.css?v=20261127092937">
+<link rel="stylesheet" href="./styles.css?v=20261127094002">
 <script src="./vendor/echarts.min.js"></script>
-<script src="./statengine.js?v=20261127092937"></script>
+<script src="./statengine.js?v=20261127094002"></script>
 </head>
 <body data-static="1">
 <nav class="view-tabs" id="viewTabs">
@@ -100,7 +100,7 @@
       </div>
     </section>
 
-    <section class="paper col-7">
+    <section class="paper col-7 pair-left">
       <div class="paper-head">
         <div><span class="eyebrow">PASSED SPONSORS</span><h2>保荐机构过会项目排行榜</h2></div>
         <span class="hint">选定期间 · 按过会数量</span>
@@ -108,27 +108,29 @@
       <div id="sponsorBoard" class="sponsor-board"></div>
     </section>
 
-    <section class="paper col-5">
-      <div class="paper-head">
-        <div><span class="eyebrow">BOARD × MONTH</span><h2>板块月度热力</h2></div>
-        <span class="hint">近 12 个月</span>
-      </div>
-      <div class="heat-block">
-        <div class="heat-cap">上市委会议通过</div>
-        <div id="heatPassChart" class="chart-heat"></div>
-      </div>
-      <div class="heat-block">
-        <div class="heat-cap">取得批文（注册）</div>
-        <div id="heatRegChart" class="chart-heat"></div>
-      </div>
-    </section>
-
-    <section class="paper col-12">
+    <section class="paper col-5 pair-right">
       <div class="paper-head">
         <div><span class="eyebrow">PASSED INDUSTRIES</span><h2>IPO 过会项目行业分布</h2></div>
         <span class="hint">选定期间 · 仅 IPO · 按过会数量排名</span>
       </div>
       <div id="industryBoard" class="sponsor-board"></div>
+    </section>
+
+    <section class="paper col-12">
+      <div class="paper-head">
+        <div><span class="eyebrow">BOARD × MONTH</span><h2>板块月度热力</h2></div>
+        <span class="hint">近 12 个月</span>
+      </div>
+      <div class="heat-grid">
+        <div class="heat-block">
+          <div class="heat-cap">上市委会议通过</div>
+          <div id="heatPassChart" class="chart-heat"></div>
+        </div>
+        <div class="heat-block">
+          <div class="heat-cap">取得批文（注册）</div>
+          <div id="heatRegChart" class="chart-heat"></div>
+        </div>
+      </div>
     </section>
 
     <section class="paper col-12">
@@ -270,6 +272,6 @@
 <section class="bond-view hidden" id="bondView">
   <iframe id="bondFrame" title="债券审核动态看板" data-src="./bond.html"></iframe>
 </section>
-<script src="./app.js?v=20261127092937"></script>
+<script src="./app.js?v=20261127094002"></script>
 </body>
 </html>

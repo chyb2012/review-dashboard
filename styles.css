@@ -322,8 +322,7 @@ td.nm{font-weight:600;max-width:260px;overflow:hidden;text-overflow:ellipsis;whi
 
 /* 排行榜与行业分布在中等屏幕保持并排 */
 @media(max-width:1180px){
-  .pair-left{grid-column:span 7}
-  .pair-right{grid-column:span 5}
+  .pair-left,.pair-right{grid-column:span 6}
 }
 @media(max-width:720px){
   .pair-left,.pair-right{grid-column:span 12}

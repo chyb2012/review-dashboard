@@ -249,13 +249,14 @@
       if (x.pa && x.pa >= start && x.pa <= end) {
         const k = boardLabel(x.p); passBoard[k] = (passBoard[k] || 0) + 1;
         const ind = String(x.p.industry || '').trim() || '未披露';
-        if (x.p.type === 'IPO') industryMix[ind] = (industryMix[ind] || 0) + 1;
+        industryMix[ind] = (industryMix[ind] || 0) + 1;
       }
       if (reviewingNow(x)) {
         const k = boardLabel(x.p); reviewBoard[k] = (reviewBoard[k] || 0) + 1;
       }
     });
     const industryBoard = Object.keys(industryMix)
+      .filter((k) => k !== '未披露')
       .map((k) => ({ industry: k, count: industryMix[k] }))
       .sort((a, b) => (b.count - a.count) || a.industry.localeCompare(b.industry, 'zh'))
       .slice(0, 20);
@@ -316,6 +317,7 @@
         .map((m) => ({ market: m, stages: boardStats[m] })),
       passBoardMix: mix(passBoard, BOARD_ORDER),
       industryBoard,
+      industryMissing: industryMix['未披露'] || 0,
       reviewBoardMix: mix(reviewBoard, BOARD_ORDER),
       marketMix: mix(marketMix, MARKET_ORDER),
       typeMix: mix(typeMix, TYPE_ORDER),

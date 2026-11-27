@@ -614,7 +614,12 @@
   function renderIndustryBoard(s) {
     const box = $('#industryBoard');
     if (!box) return;
-    const rows = s.industryBoard || [];
+    const all = s.industryBoard || [];
+    const rows = all.filter((r) => r.industry !== '未披露');
+    const missing = s.industryMissing || 0;
+    $('#industryMissing').textContent = missing
+      ? `另有 ${num(missing)} 个项目行业信息待补充（主要为推荐挂牌企业）`
+      : '';
     if (!rows.length) {
       box.innerHTML = '<div class="sb-empty">选定期间内暂无过会项目</div>';
       return;
